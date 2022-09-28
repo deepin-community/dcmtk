@@ -1,0 +1,6 @@
+# There is more than one library in one package bundles which makes perfectly
+# sense in this application but does not enable naming the library package apropriately
+libdcmtk16: package-name-doesnt-match-sonames
+libdcmtk16: embedded-library
+libdcmtk16: no-symbols-control-file
+libdcmtk16: lacks-unversioned-link-to-shared-library

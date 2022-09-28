@@ -1,0 +1,101 @@
+Source: dcmtk
+Maintainer: Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
+Uploaders: Gert Wollny <gewo@debian.org>
+Section: science
+Priority: optional
+Build-Depends: cmake,
+               debhelper-compat (= 13),
+               help2man,
+               libpng-dev,
+               libsndfile1-dev,
+               libssl-dev,
+               libtiff-dev,
+               libwrap0-dev,
+               libxml2-dev,
+               gettext,
+               zlib1g-dev
+Build-Depends-Indep: doxygen,
+                     graphviz
+Standards-Version: 4.5.0
+Vcs-Browser: https://salsa.debian.org/med-team/dcmtk
+Vcs-Git: https://salsa.debian.org/med-team/dcmtk.git
+Homepage: http://dicom.offis.de/dcmtk
+
+Package: dcmtk
+Architecture: any
+Depends: adduser,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: OFFIS DICOM toolkit command line utilities
+ DCMTK includes a collection of libraries and applications for examining,
+ constructing and converting DICOM image files, handling offline media,
+ sending and receiving images over a network connection, as well as
+ demonstrative image storage and worklist servers.
+ .
+ This package contains the DCMTK utility applications.
+ .
+ Note: This version was compiled with libssl support.
+
+Package: libdcmtk16
+Architecture: any
+Section: libs
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Conflicts: libdcmtk4,
+           libdcmtk3
+Replaces: libdcmtk4,
+          libdcmtk3
+Description: OFFIS DICOM toolkit runtime libraries
+ DCMTK includes a collection of libraries and applications for examining,
+ constructing and converting DICOM image files, handling offline media,
+ sending and receiving images over a network connection, as well as
+ demonstrative image storage and worklist servers.
+ .
+ This package contains the runtime libraries for the DCMTK utility
+ applications.
+ .
+ Note: This version was compiled with libssl support.
+
+Package: libdcmtk-dev
+Architecture: any
+Section: libdevel
+Depends: libxml2-dev,
+         libssl-dev,
+         libpng-dev,
+         libwrap0-dev,
+         libtiff-dev,
+         libdcmtk16 (= ${binary:Version}),
+         ${misc:Depends}
+Suggests: dcmtk-doc
+Breaks: libinsighttoolkit4-dev (<< 4.9.0)
+Conflicts: libdcmtk2-dev,
+           libdcmtk4-dev
+Provides: libdcmtk2-dev
+Replaces: libdcmtk2-dev,
+          libdcmtk4-dev
+Description: OFFIS DICOM toolkit development libraries and headers
+ DCMTK includes a collection of libraries and applications for examining,
+ constructing and converting DICOM image files, handling offline media,
+ sending and receiving images over a network connection, as well as
+ demonstrative image storage and worklist servers.
+ .
+ This package contains development libraries and headers for DCMTK. You
+ only need to install this if you are developing programs that use the
+ DCMTK libraries.
+ .
+ Note: This version was compiled with libssl support.
+
+Package: dcmtk-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Suggests: dcmtk,
+          libdcmtk-dev
+Description: OFFIS DICOM toolkit documentation
+ DCMTK includes a collection of libraries and applications for examining,
+ constructing and converting DICOM image files, handling offline media,
+ sending and receiving images over a network connection, as well as
+ demonstrative image storage and worklist servers.
+ .
+ This package contains the on-line documentation for the DCMTK libraries
+ and utilities in HTML format.

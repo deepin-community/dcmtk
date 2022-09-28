@@ -1,0 +1,4 @@
+usr/include/dcmtk/*
+usr/lib/*/*.so
+usr/lib/*/cmake/
+

@@ -1,0 +1,7 @@
+usr/bin/*
+etc/dcmtk/*
+usr/share/dcmtk/*.css
+usr/share/dcmtk/*.lut
+usr/share/dcmtk/dsr2xml.xsd
+usr/share/dcmtk/dcm2xml.dtd
+usr/share/dcmtk/dumppat.txt

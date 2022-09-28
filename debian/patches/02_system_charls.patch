@@ -1,0 +1,82 @@
+Description: Remove convenient copy of CharLS
+Bug-Debian: https://bugs.debian.org/705923
+Forwarded: no
+Author: Mathieu Malaterre <malat@debian.org>
+--- a/dcmjpls/CMakeLists.txt
++++ b/dcmjpls/CMakeLists.txt
+@@ -2,6 +2,6 @@
+ project(dcmjpls)
+ 
+ # recurse into subdirectories
+-foreach(SUBDIR libsrc libcharls apps include)
++foreach(SUBDIR libsrc apps include)
+   add_subdirectory(${SUBDIR})
+ endforeach()
+--- a/dcmjpls/libsrc/djerror.h
++++ b/dcmjpls/libsrc/djerror.h
+@@ -24,7 +24,7 @@
+ 
+ #include "dcmtk/config/osconfig.h"
+ #include "dcmtk/dcmjpls/djlsutil.h" /* For the OFCondition codes */
+-#include "intrface.h" /* CharLS include */
++#include "CharLS/interface.h" /* CharLS include */
+ 
+ /** Helper class for converting between dcmjpls and CharLS error codes
+  */
+--- a/dcmjpls/libsrc/djcodecd.cc
++++ b/dcmjpls/libsrc/djcodecd.cc
+@@ -37,7 +37,7 @@
+ #include "djerror.h"                 /* for private class DJLSError */
+ 
+ // JPEG-LS library (CharLS) includes
+-#include "intrface.h"
++#include "CharLS/interface.h"
+ 
+ E_TransferSyntax DJLSLosslessDecoder::supportedTransferSyntax() const
+ {
+--- a/dcmjpls/libsrc/djcodece.cc
++++ b/dcmjpls/libsrc/djcodece.cc
+@@ -55,7 +55,7 @@
+ #include "dcmtk/dcmimgle/dcmimage.h"  /* for class DicomImage */
+ 
+ // JPEG-LS library (CharLS) includes
+-#include "intrface.h"
++#include "CharLS/interface.h"
+ 
+ BEGIN_EXTERN_C
+ #ifdef HAVE_FCNTL_H
+@@ -664,7 +664,7 @@
+ 
+     size_t bytesWritten = 0;
+ 
+-    JLS_ERROR err = JpegLsEncode(&buffer, &size, &bytesWritten, framePointer, frameSize, &jls_params);
++    JLS_ERROR err = JpegLsEncode(&buffer, size, &bytesWritten, framePointer, frameSize, &jls_params);
+     result = DJLSError::convert(err);
+ 
+     if (result.good())
+@@ -1071,7 +1071,7 @@
+ 
+   size_t bytesWritten = 0;
+ 
+-  JLS_ERROR err = JpegLsEncode(&compressed_buffer, &compressed_buffer_size, &bytesWritten, framePointer, buffer_size, &jls_params);
++  JLS_ERROR err = JpegLsEncode(&compressed_buffer, compressed_buffer_size, &bytesWritten, framePointer, buffer_size, &jls_params);
+   result = DJLSError::convert(err);
+ 
+   if (result.good())
+--- a/dcmjpls/apps/CMakeLists.txt
++++ b/dcmjpls/apps/CMakeLists.txt
+@@ -8,5 +8,5 @@
+ 
+ # make sure executables are linked to the corresponding libraries
+ foreach(PROGRAM dcmcjpls dcmdjpls dcml2pnm)
+-  DCMTK_TARGET_LINK_MODULES(${PROGRAM} dcmjpls charls dcmimage dcmimgle dcmdata oflog ofstd ofstd)
++  DCMTK_TARGET_LINK_MODULES(${PROGRAM} dcmjpls CharLS dcmimage dcmimgle dcmdata oflog ofstd ofstd)
+ endforeach()
+--- a/dcmjpls/libsrc/CMakeLists.txt
++++ b/dcmjpls/libsrc/CMakeLists.txt
+@@ -4,4 +4,4 @@
+ # create library from source files
+ DCMTK_ADD_LIBRARY(dcmjpls djcparam djdecode djencode djrparam djcodecd djutils djcodece)
+ 
+-DCMTK_TARGET_LINK_MODULES(dcmjpls ofstd oflog dcmdata dcmimgle dcmimage charls)
++DCMTK_TARGET_LINK_MODULES(dcmjpls ofstd oflog dcmdata dcmimgle dcmimage CharLS)

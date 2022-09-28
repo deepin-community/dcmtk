@@ -1,0 +1,89 @@
+#!/usr/bin/make -f
+#export DH_VERBOSE=1
+
+# export DEB_BUILD_MAINT_OPTIONS = hardening=+pie
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# reduce overlinking:
+export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed
+
+# needed for the tests 
+export DCMDICTPATH=$(CURDIR)/dcmdata/data/dicom.dic
+
+# deduce documentation option (build-indep target)
+ifeq "" "$(filter %-doc,$(shell dh_listpackages))"
+  BUILDDOC = OFF
+else
+  BUILDDOC = ON
+endif
+
+# when BUILDDOC==OFF, convenient copies of doxygen man pages are used
+# when BUILDDOC==ON, doxygen man pages are being regenerated, this may leads to
+# improper md5sum...
+
+%:
+	dh $@ --buildsystem=cmake
+
+# SKIP_RPATH=OFF to run test suite:
+# see #701231
+CMAKE_EXTRA_FLAGS += -DCMAKE_BUILD_TYPE:STRING=None \
+ -DBUILD_SHARED_LIBS:BOOL=ON \
+ -DDCMTK_WITH_OPENSSL:BOOL=ON \
+ -DDCMTK_ENABLE_PRIVATE_TAGS:BOOL=ON \
+ -DDCMTK_WITH_XML:BOOL=ON \
+ -DDCMTK_WITH_DOXYGEN:BOOL=$(BUILDDOC) \
+ -DDCMTK_WITH_TIFF:BOOL=ON \
+ -DDCMTK_WITH_ZLIB:BOOL=ON \
+ -DDCMTK_WITH_ICONV:BOOL=OFF \
+ -DDCMTK_WITH_ICU:BOOL=OFF \
+ -DUSE_COMPILER_HIDDEN_VISIBILITY:BOOL=ON \
+ -DCMAKE_VERBOSE_MAKEFILE=ON \
+ -DCMAKE_INSTALL_DATADIC:STRING=share/libdcmtk16 \
+ -DCMAKE_SKIP_RPATH:BOOL=OFF \
+ -DDCMTK_ENABLE_STL:BOOL=ON \
+ -DCMAKE_CXX_STANDARD:STRING=14
+
+override_dh_auto_configure:
+	dh_auto_configure -- $(CMAKE_EXTRA_FLAGS)
+
+override_dh_auto_build-arch:
+	# need man page in -arch packages:
+	#$(MAKE) -C obj-* man
+	dh_auto_build
+
+# Let's be smart with building doc
+override_dh_auto_build-indep:
+	$(MAKE) -C obj-* DOXYGEN
+
+# No tests needed for docs
+override_dh_auto_test-indep:
+
+
+override_dh_auto_install-arch:
+	dh_auto_install
+
+override_dh_auto_install-indep:
+	DESTDIR=$(CURDIR)/debian/tmp $(MAKE) -C obj-*/doxygen install 
+	DESTDIR=$(CURDIR)/debian/tmp $(MAKE) -C obj-*/dcmwlm/data install 
+
+
+override_dh_installdocs:
+	dh_installdocs
+	# do the doxygen / jquery fix:
+	dh_link -pdcmtk-doc usr/share/javascript/jquery/jquery.js usr/share/doc/dcmtk-doc/html/jquery.js
+
+override_dh_install-arch:
+	dh_install # --list-missing
+	#remove test binaries 
+	rm ./debian/dcmtk/usr/bin/*_tests
+	rm ./debian/dcmtk/usr/bin/drttest
+	rm ./debian/dcmtk/usr/bin/mkreport
+	rm ./debian/dcmtk/usr/bin/msgserv
+	rm ./debian/dcmtk/usr/bin/wltest
+	rm ./debian/tmp/usr/share/dcmtk/SC.dump
+	rm ./debian/tmp/usr/share/dcmtk/VLP.dump
+
+get-orig-source:
+	uscan --force-download --verbose --rename
+
+.PHONY: get-orig-source

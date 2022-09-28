@@ -1,0 +1,2 @@
+version=3
+ftp://dicom.offis.de/pub/dicom/offis/software/dcmtk/current/dcmtk-(.*)\.tar\.gz
