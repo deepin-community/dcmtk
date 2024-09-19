@@ -1,8 +1,12 @@
-dcmtk (3.6.6-1) UNRELEASED; urgency=medium
+dcmtk (3.6.6-1deepin0) unstable; urgency=medium
 
+  [ Debian Med Packaging Team ]
   * update
 
- -- Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>  Wed, 25 May 2022 10:56:00 +0800
+  [ Tianyu Chen ]
+  * No source change upload against GCC 12.
+
+ -- Tianyu Chen <sweetyfish@deepin.org>  Thu, 19 Sep 2024 22:44:45 +0800
 
 dcmtk (3.6.6-1) unstable; urgency=medium
 
