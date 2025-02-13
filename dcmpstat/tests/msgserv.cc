@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2000-2018, OFFIS e.V.
+ *  Copyright (C) 2000-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -49,17 +49,13 @@ BEGIN_EXTERN_C
 #endif
 END_EXTERN_C
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CERRNO
-#define INCLUDE_CTIME
-#include "dcmtk/ofstd/ofstdinc.h"
 
-#include "dcmtk/dcmpstat/dvpsmsg.h"     /* for class DVPSIPCMessage */
-#include "dcmtk/dcmdata/cmdlnarg.h"    /* for prepareCmdLineArgs */
-#include "dcmtk/ofstd/ofconapp.h"    /* for class OFConsoleApplication */
+#include "dcmtk/dcmpstat/dvpsmsg.h"   /* for class DVPSIPCMessage */
+#include "dcmtk/dcmdata/cmdlnarg.h"   /* for prepareCmdLineArgs */
+#include "dcmtk/ofstd/ofconapp.h"     /* for class OFConsoleApplication */
 #include "dcmtk/dcmnet/dcmtrans.h"    /* for class DcmTCPConnection */
 #include "dcmtk/dcmdata/dcuid.h"
-#include "dcmtk/dcmnet/dcompat.h"     /* compatability routines */
+#include "dcmtk/dcmnet/dcompat.h"     /* compatibility routines */
 #include "dcmtk/dcmnet/dul.h"
 #include "dcmtk/dcmnet/diutil.h"
 

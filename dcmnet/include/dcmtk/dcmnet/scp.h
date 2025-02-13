@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2009-2020, OFFIS e.V.
+ *  Copyright (C) 2009-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -102,8 +102,8 @@ struct DCMTK_DCMNET_EXPORT DcmPresentationContextInfo
     DcmPresentationContextInfo()
         : presentationContextID(0)
         , abstractSyntax()
-        , proposedSCRole(0)
-        , acceptedSCRole(0)
+        , proposedSCRole(DUL_SC_ROLE_NONE)
+        , acceptedSCRole(DUL_SC_ROLE_NONE)
         , acceptedTransferSyntax()
     {
     }
@@ -113,9 +113,9 @@ struct DCMTK_DCMNET_EXPORT DcmPresentationContextInfo
     /// Abstract Syntax name (UID) as proposed by SCU
     OFString abstractSyntax;
     /// SCP role as proposed from SCU
-    Uint8 proposedSCRole;
+    DUL_SC_ROLE proposedSCRole;
     /// Role accepted by SCP for this Presentation Context
-    Uint8 acceptedSCRole;
+    DUL_SC_ROLE acceptedSCRole;
     /// Transfer Syntax accepted for this Presentation Context (UID)
     OFString acceptedTransferSyntax;
     // Fields "reserved" and "result" not included from DUL_PRESENTATIONCONTEXT
@@ -132,8 +132,7 @@ struct DCMTK_DCMNET_EXPORT DcmPresentationContextInfo
  *  supported list of presentation contexts. However, if this class should negotiate
  *  Verification, call setEnableVerification(). In that case DcmSCP will also
  *  respond to related C-ECHO requests. Note that this cannot be reverted.
- *  @warning This class is EXPERIMENTAL. Be careful to use it in production environment.
- */
+  */
 class DCMTK_DCMNET_EXPORT DcmSCP
 {
 
@@ -238,7 +237,10 @@ public:
 
     /** Set SCP's TCP/IP listening port
      *  @param port [in] The port number to listen on. Note that usually on Unix-like systems
-     *                   only root user is permitted to open ports below 1024.
+     *                   only root user is permitted to open ports below 1024. If port number 0
+     *                   is provided, the OS will assign a free port once openListenPort()
+     *                   is being called. The port number actually used is then available via
+     *                   getPort().
      */
     void setPort(const Uint16 port);
 
@@ -542,11 +544,19 @@ protected:
      */
     virtual void notifyAssociationRequest(const T_ASC_Parameters& params, DcmSCPActionType& desiredAction);
 
-    /** Overwrite this function if called AE title should undergo checking. If
-     *  OFTrue is returned, the AE title is accepted and processing is continued.
+    /** Overwrite this function if called AE title should undergo custom checking.
+    *   If OFTrue is returned, the AE title is accepted and processing is continued.
      *  In case of OFFalse, the SCP will refuse the incoming association with
      *  error "Called Application Entity Title Not Recognized".
-     *  The standard handler always returns OFTrue.
+     *
+     *  The standard handler always returns true, if setRespondWithCalledAETitle()
+     *  has been enabled, i.e. DcmSCP will respond with the AE Title the remote AE
+     *  used for DcmSCP as the "Called AE Title". This is DcmSCP's default behaviour
+     *  and in particular good for testing.
+     *
+     *  If setRespondWithCalledAETitle() is set to false, DcmSCP will check whether
+     *  the Called AE Title used by the remote AE matches the one configured for
+     *  DcmSCP. The default value is "DCMTK_SCP" and can be changed calling setAETitle().
      *  @param calledAE The called AE title the SCU used that should be checked
      *  @return OFTrue, if AE title is accepted, OFFalse otherwise
      */

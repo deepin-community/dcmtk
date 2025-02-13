@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2011-2019, OFFIS e.V.
+ *  Copyright (C) 2011-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were slightly modified by
@@ -33,7 +33,7 @@
  *   If you add "#define STRICT_PARSING", on the first line of this file
  *   the parser will see the following XML-stream:
  *      <a><b>some text</b><b>other text    </a>
- *   as an error. Otherwise, this tring will be equivalent to:
+ *   as an error. Otherwise, this string will be equivalent to:
  *      <a><b>some text</b><b>other text</b></a>
  *
  * NOTE:
@@ -72,7 +72,7 @@
  * for enhancing "DCMTK  project". All other projects
  * (not related to "DCMTK  project") have to use this
  * code under the Aladdin Free Public License (AFPL)
- * See the file "AFPL-license.txt" for more informations about the AFPL license.
+ * See the file "AFPL-license.txt" for more information about the AFPL license.
  * (see http://www.artifex.com/downloads/doc/Public.htm for detailed AFPL terms)
  *
  * Redistribution and use in source and binary forms, with or without
@@ -104,6 +104,8 @@
 #endif
 // DCMTK: we need this header file at the beginning of each file
 #include "dcmtk/config/osconfig.h"
+#include "dcmtk/ofstd/ofstdinc.h"
+#include "dcmtk/ofstd/ofdiag.h"
 
 // DCMTK: we need the correct header file (was "xmlParser.h")
 #include "dcmtk/ofstd/ofxml.h"
@@ -117,31 +119,35 @@
                      // to have "MessageBoxA" to display error messages for openFileHelper
 #endif
 
-// DCMTK: we want to use our own standard include wrappers
-#define INCLUDE_CMEMORY
-#define INCLUDE_CASSERT
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CSTDLIB
-#include "dcmtk/ofstd/ofstdinc.h"
+#include <cstdio>
+#include <cstring>
+#include <cassert>
+#include <cstdlib>
 
-// DCMTK: workaround for SunPro not defining these C functions in the global namespace
-#ifdef __sun
 using STD_NAMESPACE free;
 using STD_NAMESPACE malloc;
-using STD_NAMESPACE realloc;
-using STD_NAMESPACE atoi;
-using STD_NAMESPACE atol;
-using STD_NAMESPACE atof;
 using STD_NAMESPACE FILE;
 using STD_NAMESPACE fopen;
+using STD_NAMESPACE atoi;
 using STD_NAMESPACE fread;
-using STD_NAMESPACE fwrite;
+using STD_NAMESPACE atof;
+using STD_NAMESPACE fclose;
 using STD_NAMESPACE fprintf;
+using STD_NAMESPACE realloc;
+using STD_NAMESPACE atol;
+using STD_NAMESPACE fwrite;
 using STD_NAMESPACE fseek;
 using STD_NAMESPACE ftell;
-using STD_NAMESPACE fclose;
+
+#ifdef HAVE_STRINGS_H
+BEGIN_EXTERN_C
+#include <strings.h>
+END_EXTERN_C
 #endif
+
+// The code in this class ensures that raw access to 'struct XMLNode'
+// is safe. Therefore it is safe to suppress this warning.
+#include DCMTK_DIAGNOSTIC_IGNORE_CLASS_MEMACCESS_WARNING
 
 XMLCSTR XMLNode::getVersion() { return _CXML("v2.44"); }
 void freeXMLString(XMLSTR t){if(t)free(t);}
@@ -238,7 +244,7 @@ char myIsTextWideChar(const void * /*b*/, int /*len*/) { return FALSE; }
     char myIsTextWideChar(const void *b, int len) // inspired by the Wine API: RtlIsTextUnicode
     {
 #ifdef sun
-        // for SPARC processors: wchar_t* buffers must always be alligned, otherwise it's a char* buffer.
+        // for SPARC processors: wchar_t* buffers must always be aligned, otherwise it's a char* buffer.
         if ((((unsigned long)b)%sizeof(wchar_t))!=0) return FALSE;
 #endif
         const wchar_t *s=(const wchar_t*)b;
@@ -419,7 +425,6 @@ char myIsTextWideChar(const void * /*b*/, int /*len*/) { return FALSE; }
         static inline XMLSTR xstrstr(XMLCSTR c1, XMLCSTR c2) { return OFconst_cast(XMLSTR, strstr(c1,c2)); }
         static inline XMLSTR xstrcpy(XMLSTR c1, XMLCSTR c2) { return OFconst_cast(XMLSTR, strcpy(c1,c2)); }
     #endif
-    static inline int _strnicmp(const char *c1,const char *c2, int l) { return strncasecmp(c1,c2,l);}
 #endif
 
 
@@ -788,7 +793,7 @@ XMLSTR ToXMLStringTool::toXMLUnSafe(XMLSTR dest,XMLCSTR source)
     XMLSTR dd=dest;
     XMLCHAR ch;
     XMLCharacterEntity *entity;
-    while ((ch=*source))
+    while ((ch=*source) != 0)
     {
         entity=XMLEntities;
         do
@@ -847,7 +852,7 @@ int ToXMLStringTool::lengthXMLString(XMLCSTR source)
     int r=0;
     XMLCharacterEntity *entity;
     XMLCHAR ch;
-    while ((ch=*source))
+    while ((ch=*source) != 0)
     {
         entity=XMLEntities;
         do
@@ -1062,7 +1067,7 @@ static NextToken GetNextToken(XML *pXML, int *pcbToken, enum XMLTokenTypeTag *pT
             nFoundMatch = FALSE;
 
             // Search through the string to find a matching quote
-            while((ch = getNextChar(pXML)))
+            while((ch = getNextChar(pXML)) != 0)
             {
                 if (ch==chTemp) { nFoundMatch = TRUE; break; }
                 if (ch==_CXML('<')) break;
@@ -1167,7 +1172,7 @@ static NextToken GetNextToken(XML *pXML, int *pcbToken, enum XMLTokenTypeTag *pT
         {
             // Indicate we are dealing with text
             *pType = eTokenText;
-            while((ch = getNextChar(pXML)))
+            while((ch = getNextChar(pXML)) != 0)
             {
                 if XML_isSPACECHAR(ch)
                 {
@@ -1519,7 +1524,7 @@ int XMLNode::ParseXMLElement(void *pa)
                     token = GetNextToken(pXML, &cbToken, &xtype);
 
                     // Return an error if we couldn't obtain the next token or
-                    // it wasnt text
+                    // it wasn't text
                     if (xtype != eTokenText)
                     {
                         pXML->error = eXMLErrorMissingTagName;
@@ -2282,7 +2287,7 @@ XMLSTR XMLNode::createXMLString(int nFormat, int *pnSize) const
     if (!dropWhiteSpace) nFormat=0;
     nFormat = nFormat ? 0 : -1;
     cbStr = CreateXMLStringR(d, 0, nFormat);
-    // Alllocate memory for the XML string + the NULL terminator and
+    // Allocate memory for the XML string + the NULL terminator and
     // create the recursively XML string.
     lpszResult=OFreinterpret_cast(XMLSTR, malloc((cbStr+1)*sizeof(XMLCHAR)));
     CreateXMLStringR(d, lpszResult, nFormat);

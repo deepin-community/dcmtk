@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2011-2018, OFFIS e.V.
+ *  Copyright (C) 2011-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -26,9 +26,6 @@
 #include "dcmtk/ofstd/ofdefine.h"
 #include "dcmtk/ofstd/ofthread.h"
 #include "dcmtk/ofstd/ofstd.h"
-
-#define INCLUDE_CASSERT
-#include "dcmtk/ofstd/ofstdinc.h"
 
 BEGIN_EXTERN_C
 #ifdef HAVE_SYS_TIME_H
@@ -164,8 +161,7 @@ void OFUUID::generate()
 
     get_time(&system_time[0]);
     /* If time went backwards, increment clock sequence */
-    if (system_time[0] < last_time[0] ||
-            (system_time[0] == last_time[0] && system_time[1] < last_time[1]))
+    if (system_time[0] < last_time[0] || (system_time[0] == last_time[0] && system_time[1] < last_time[1]))
         last_clock_sequence++;
     clock_sequence = last_clock_sequence;
 

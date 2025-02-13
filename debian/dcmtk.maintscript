@@ -1,0 +1,4 @@
+rm_conffile /etc/default/dcmqrscp
+rm_conffile /etc/default/storescp
+rm_conffile /etc/init.d/dcmqrscp
+rm_conffile /etc/init.d/storescp

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2020, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -22,9 +22,7 @@
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
+#include <cstring>                    /* for memset() */
 
 #include "dcmtk/ofstd/ofstream.h"
 #include "dcmtk/ofstd/ofstd.h"
@@ -237,7 +235,7 @@ OFCondition DcmMetaInfo::writeJson(STD_NAMESPACE ostream &out,
 
 void DcmMetaInfo::setPreamble()
 {
-    memzero(filePreamble, sizeof(filePreamble));
+    memset(filePreamble, 0, sizeof(filePreamble));
     preambleUsed = OFFalse;
 }
 
@@ -298,11 +296,11 @@ OFBool DcmMetaInfo::checkAndReadPreamble(DcmInputStream &inStream,
         // check determined transfer syntax
         if ((tmpXferSyn.isExplicitVR() && xferSyn.isImplicitVR()) ||
             (tmpXferSyn.isImplicitVR() && xferSyn.isExplicitVR()) ||
-            xferSyn.getXfer() == EXS_Unknown)
+            xferSyn == EXS_Unknown)
         {
             // use determined transfer syntax
             newxfer = tmpXferSyn.getXfer();
-            if (xferSyn.getXfer() != EXS_Unknown)
+            if (xferSyn != EXS_Unknown)
                 DCMDATA_WARN("DcmMetaInfo: TransferSyntax of MetaInfo is other than expected");
         } else
             newxfer = xferSyn.getXfer();
@@ -375,7 +373,7 @@ OFCondition DcmMetaInfo::readGroupLength(DcmInputStream &inStream,
         {
             l_error = DcmItem::readSubElement(inStream, newTag, newValueLength, newxfer, glenc, maxReadLength);
             bytesRead += newValueLength;
-            if (l_error.good() && newTag.getXTag() == xtag && elementList->get() != NULL && newValueLength > 0)
+            if (l_error.good() && newTag == xtag && elementList->get() != NULL && newValueLength > 0)
             {
                 l_error = (OFstatic_cast(DcmUnsignedLong *, elementList->get()))->getUint32(headerLen);
                 DCMDATA_TRACE("DcmMetaInfo::readGroupLength() Group Length of File Meta Header = " << headerLen + bytesRead);
@@ -583,6 +581,9 @@ OFCondition DcmMetaInfo::write(
             /* set the transfer state of certain elements to indicate that they have already been written. */
             if (getTransferState() == ERW_init)
             {
+                // Force a compression filter (if any) to process the input buffer, by calling outStream.write().
+                // This ensures that we cannot get stuck if there are just a few bytes available in the buffer
+                outStream.write(NULL, 0);
                 if (preambleUsed || !elementList->empty())
                 {
                     if (fPreambleTransferState == ERW_init)

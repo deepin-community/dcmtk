@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2001-2011, OFFIS e.V.
+ *  Copyright (C) 2001-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -25,15 +25,20 @@
 #include "dcmtk/config/osconfig.h"
 #include "dcmtk/dcmdata/libi2d/i2doutpl.h"
 
+
+/** img2dcm output plugin for (enhanced) Secondary Capture Storage SOP Classes */
 class DCMTK_I2D_EXPORT I2DOutputPlugNewSC : public I2DOutputPlug
 {
 
 public:
 
   /** Constructor, initializes member variables with standard values
-   *  @return none
    */
   I2DOutputPlugNewSC();
+
+  /** Virtual Destructor, clean up memory
+   */
+  virtual ~I2DOutputPlugNewSC();
 
   /** Virtual function that returns a short name of the plugin.
    *  @return The name of the plugin
@@ -42,9 +47,8 @@ public:
 
   /** Overwrites function from base class. Returns the Storage SOP class
    *  written by this plugin
-   *  @param suppSOPs - [out] List of UIDs representing the supported SOP 
+   *  @param suppSOPs - [out] List of UIDs representing the supported SOP
    *                    classes supported by this plugin.
-   *  @return none
    */
   virtual void supportedSOPClassUIDs(OFList<OFString>& suppSOPs);
 
@@ -61,25 +65,29 @@ public:
    */
   virtual OFString isValid(DcmDataset& dataset) const;
 
-  /** Virtual Destructor, clean up memory
-   *  @return none
+  /** check if the output format supported by this plugin can write
+   *  multi-frame images.
+   *  @return true if multiframe is supported, false otherwise
    */
-  virtual ~I2DOutputPlugNewSC();
+  virtual OFBool supportsMultiframe() const;
+
+  /** Add multiframe specific attributes
+   *  @param targetDataset pointer to DICOM dataset, must not be NULL
+   *  @param numberOfFrames number of frames in this dataset
+   *  @return EC_Normal if successful, an error code otherwise
+   */
+  virtual OFCondition insertMultiFrameAttributes(
+    DcmDataset* targetDataset,
+    size_t numberOfFrames) const;
 
 protected:
-
-  /** Inserts attributes for Multi-frame Module
-   *  @param targetDataset - [in/out] The dataset to write to
-   *  @return EC_Normal if insertion was successfull, error code otherwise
-   */
-  virtual OFCondition insertMultiFrameAttribs(DcmDataset* targetDataset) const;
 
   /** Inserts attributes Rescale Slope/Intercept/Type, which have to be
    *  written (1C) if color model is MONOCHROME2 and BitsStored > 1.
    *  @param targetDataset - [out] The dataset to write to
-   *  @return EC_Normal if insertion was successfull, error code otherwise
+   *  @return EC_Normal if insertion was successful, error code otherwise
    */
-  virtual OFCondition insertSCMultiFrameAttribs(DcmDataset *targetDataset) const;
+  virtual OFCondition insertMonochromeAttribs(DcmDataset *targetDataset) const;
 
   /** Checks whether Image Pixel module attributes conform to the
    *  specification of a a 1 bit Secondary Capture object.

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2003-2019, OFFIS e.V.
+ *  Copyright (C) 2003-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -81,7 +81,7 @@ MdfConsoleEngine::MdfConsoleEngine(int argc, char *argv[],
     cmd->setOptionColumns(LONGCOL, SHORTCOL);
     cmd->setParamColumn(LONGCOL + SHORTCOL + 4);
 
-    cmd->addParam("dcmfile-in", "DICOM input filename to be modified", OFCmdParam::PM_MultiMandatory);
+    cmd->addParam("dcmfile-in", "DICOM input filename to be modified\n(\"-\" for stdin/stdout)", OFCmdParam::PM_MultiMandatory);
 
     // add options to commandline application
     cmd->addGroup("general options:", LONGCOL, SHORTCOL + 2);
@@ -541,7 +541,7 @@ int MdfConsoleEngine::startProvidingService()
                 {
                     OFLOG_ERROR(dcmodifyLogger, "couldn't save file: " << result.text());
                     errors++;
-                    if (!no_backup_option && !was_created)
+                    if (!no_backup_option && !was_created && strcmp(filename, "-"))
                     {
                         result = restoreFile(filename);
                         if (result.bad())
@@ -553,7 +553,7 @@ int MdfConsoleEngine::startProvidingService()
                 }
             }
             // errors occurred and user doesn't want to ignore them:
-            else if (!no_backup_option && !was_created)
+            else if (!no_backup_option && !was_created && strcmp(filename, "-"))
             {
                 result = restoreFile(filename);
                 if (result.bad())
@@ -589,7 +589,7 @@ OFCondition MdfConsoleEngine::loadFile(const char *filename)
     // load file into dataset manager
     was_created = !OFStandard::fileExists(filename);
     result = ds_man->loadFile(filename, read_mode_option, input_xfer_option, create_if_necessary);
-    if (result.good() && !no_backup_option && !was_created)
+    if (result.good() && !no_backup_option && !was_created && strcmp(filename, "-"))
         result = backupFile(filename);
     return result;
 }

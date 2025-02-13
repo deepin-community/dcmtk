@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2000-2020, OFFIS e.V.
+ *  Copyright (C) 2000-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -21,11 +21,6 @@
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CCTYPE
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/dcmdata/cmdlnarg.h"
 #include "dcmtk/oflog/oflog.h"
@@ -54,12 +49,7 @@ static char rcsid[] = "$dcmtk: " OFFIS_CONSOLE_APPLICATION " v"
 #include "dcmtk/dcmsign/sisrpr.h"
 #include "dcmtk/dcmsign/sisrvpr.h"
 #include "dcmtk/dcmsign/simac.h"
-#include "dcmtk/dcmsign/simd5.h"
-#include "dcmtk/dcmsign/sisha1.h"
-#include "dcmtk/dcmsign/sisha256.h"
-#include "dcmtk/dcmsign/sisha384.h"
-#include "dcmtk/dcmsign/sisha512.h"
-#include "dcmtk/dcmsign/siripemd.h"
+#include "dcmtk/dcmsign/simdmac.h"
 #include "dcmtk/dcmsign/siprivat.h"
 #include "dcmtk/dcmsign/sicert.h"
 #include "dcmtk/dcmsign/sitsfs.h"
@@ -134,8 +124,8 @@ int main(int argc, char *argv[])
   OFCommandLine cmd;
   cmd.setOptionColumns(LONGCOL, SHORTCOL);
   cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
-  cmd.addParam("dcmfile-in",  "DICOM input filename to be processed");
-  cmd.addParam("dcmfile-out", "DICOM output filename", OFCmdParam::PM_Optional);
+  cmd.addParam("dcmfile-in",  "DICOM input filename to be processed\n(\"-\" for stdin)");
+  cmd.addParam("dcmfile-out", "DICOM output filename\n(\"-\" for stdout)", OFCmdParam::PM_Optional);
 
   cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);
       cmd.addOption("--help",                      "-h",        "print this help text and exit", OFCommandLine::AF_Exclusive);
@@ -553,35 +543,35 @@ int main(int argc, char *argv[])
     if (cmd.findOption("--mac-ripemd160"))
     {
       app.checkDependence("--mac-ripemd160", "--sign or --sign-item", (opt_operation == DSO_sign) || (opt_operation == DSO_signItem));
-      opt_mac = new SiRIPEMD160();
+      opt_mac = new SiMDMAC(EMT_RIPEMD160);
     }
     if (cmd.findOption("--mac-sha1"))
     {
       app.checkDependence("--mac-sha1", "--sign or --sign-item", (opt_operation == DSO_sign) || (opt_operation == DSO_signItem));
-      opt_mac = new SiSHA1();
+      opt_mac = new SiMDMAC(EMT_SHA1);
     }
     if (cmd.findOption("--mac-md5"))
     {
       app.checkDependence("--mac-md5", "--sign or --sign-item", (opt_operation == DSO_sign) || (opt_operation == DSO_signItem));
-      opt_mac = new SiMD5();
+      opt_mac = new SiMDMAC(EMT_MD5);
     }
     if (cmd.findOption("--mac-sha256"))
     {
       app.checkDependence("--mac-sha256", "--sign or --sign-item", (opt_operation == DSO_sign) || (opt_operation == DSO_signItem));
-      opt_mac = new SiSHA256();
+      opt_mac = new SiMDMAC(EMT_SHA256);
     }
     if (cmd.findOption("--mac-sha384"))
     {
       app.checkDependence("--mac-sha384", "--sign or --sign-item", (opt_operation == DSO_sign) || (opt_operation == DSO_signItem));
-      opt_mac = new SiSHA384();
+      opt_mac = new SiMDMAC(EMT_SHA384);
     }
     if (cmd.findOption("--mac-sha512"))
     {
       app.checkDependence("--mac-sha512", "--sign or --sign-item", (opt_operation == DSO_sign) || (opt_operation == DSO_signItem));
-      opt_mac = new SiSHA512();
+      opt_mac = new SiMDMAC(EMT_SHA512);
     }
     cmd.endOptionBlock();
-    if (opt_mac == NULL) opt_mac = new SiRIPEMD160();
+    if (opt_mac == NULL) opt_mac = new SiMDMAC(EMT_RIPEMD160);
 
     cmd.beginOptionBlock();
     if (cmd.findOption("--no-sig-purpose"))
@@ -867,11 +857,11 @@ int main(int argc, char *argv[])
   }
 
 cleanup:
-
   delete opt_timeStamp;
   delete opt_mac;
   delete opt_profile;
   delete opt_tagList;
+  DcmSignature::cleanupLibrary();
   return result;
 }
 

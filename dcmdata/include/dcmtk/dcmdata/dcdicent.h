@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2011, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -25,9 +25,6 @@
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 #include "dcmtk/dcmdata/dctagkey.h"
 #include "dcmtk/dcmdata/dcvr.h"
-
-#define INCLUDE_CSTRING               /* for strcmp() */
-#include "dcmtk/ofstd/ofstdinc.h"
 
 /// constant describing an unlimited VM
 #define DcmVariableVM   -1
@@ -68,7 +65,7 @@ public:
      *  @param vmMax upper limit for value multiplicity, DcmVariableVM for unlimited
      *  @param vers standard version name, may be NULL
      *  @param doCopyStrings true if strings should be copied, false if only referenced
-     *  @param pcreator private creator name, may be NULL (for standard tags)
+     *  @param pcreator private creator identifier, may be NULL (for standard tags)
      */
     DcmDictEntry(Uint16 g, Uint16 e, DcmVR vr,
         const char* nam, int vmMin, int vmMax,
@@ -86,14 +83,16 @@ public:
      *  @param vmMax upper limit for value multiplicity, DcmVariableVM for unlimited
      *  @param vers standard version name, may be NULL
      *  @param doCopyStrings true if strings should be copied, false if only referenced
-     *  @param pcreator private creator name, may be NULL (for standard tags)
+     *  @param pcreator private creator identifier, may be NULL (for standard tags)
      */
     DcmDictEntry(Uint16 g, Uint16 e, Uint16 ug, Uint16 ue, DcmVR vr,
         const char* nam, int vmMin, int vmMax,
         const char* vers, OFBool doCopyStrings,
         const char* pcreator);
 
-    /// copy constructor
+    /** copy constructor
+     * @param e the entry to copy
+     */
     DcmDictEntry(const DcmDictEntry& e);
 
     /// destructor
@@ -125,13 +124,13 @@ public:
         return tagName;
     }
 
-    /// returns private creator code, may be NULL
+    /// returns private creator identifier, may be NULL
     const char* getPrivateCreator() const
     {
         return privateCreator;
     }
 
-    /** checks if the private creator code equals the given string
+    /** checks if the private creator identifier equals the given string
      *  @param c string to compare with, may be NULL
      *  @return true if equal, false otherwise
      */
@@ -144,10 +143,10 @@ public:
       );
     }
 
-    /** checks if the private creator code of this object matches
-     *  the one of the given object.
+    /** checks if the private creator identifier of this object matches the one
+     *  of the given object.
      *  @param arg dictionary entry to compare with
-     *  @return true if private creators are equal, false otherwise
+     *  @return true if private creator identifiers are equal, false otherwise
      */
     int privateCreatorMatch(const DcmDictEntry& arg) const
     {
@@ -262,7 +261,9 @@ public:
         return groupRangeRestriction;
     }
 
-    /// sets group range restriction
+    /** sets group range restriction
+     * @param rr the new range restriction
+     */
     void setGroupRangeRestriction(DcmDictRangeRestriction rr)
     {
         groupRangeRestriction = rr;
@@ -274,7 +275,9 @@ public:
         return elementRangeRestriction;
     }
 
-    /// sets element range restriction
+    /** sets element range restriction
+    * @param rr the new range restriction
+    */
     void setElementRangeRestriction(DcmDictRangeRestriction rr)
     {
         elementRangeRestriction = rr;
@@ -282,11 +285,12 @@ public:
 
     /* containment */
 
-    /** checks if the given tag key and private creator code are covered
+    /** checks if the given tag key and private creator identifier are covered
      *  by this object.
      *  @param key tag key
-     *  @param privCreator private creator, may be NULL
-     *  @return true if this entry contains the given tag for the given private creator
+     *  @param privCreator private creator identifier, may be NULL
+     *  @return true if this entry contains the given tag for the given private
+     *    creator identifier
      */
     int contains(const DcmTagKey& key, const char *privCreator) const /* this contains key */
     {
@@ -356,7 +360,11 @@ public:
             );
     }
 
-    /// friend operator<<
+    /** friend operator<<
+     * @param s the ostream to append upon
+     * @param e the dictionary entry
+     * @return the appended on ostream
+     */
     friend DCMTK_DCMDATA_EXPORT STD_NAMESPACE ostream& operator<<(STD_NAMESPACE ostream& s, const DcmDictEntry& e);
 
 private:
@@ -393,7 +401,7 @@ private:
     /// restriction (even, odd, unrestricted) for element range
     DcmDictRangeRestriction elementRangeRestriction;
 
-    /// private creator name, may be NULL
+    /// private creator identifier, may be NULL
     const char *privateCreator;
 };
 

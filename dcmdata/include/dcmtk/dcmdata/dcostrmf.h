@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2012, OFFIS e.V.
+ *  Copyright (C) 1994-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -26,9 +26,7 @@
 #include "dcmtk/config/osconfig.h"
 #include "dcmtk/dcmdata/dcostrma.h"
 
-#define INCLUDE_CSTDIO
-#include "dcmtk/ofstd/ofstdinc.h"
-
+class OFFile;
 
 /** consumer class that stores data in a plain file.
  */
@@ -45,6 +43,13 @@ public:
    *  @param file structure, file must already be open for writing
    */
   DcmFileConsumer(FILE *file);
+
+  /** constructor
+   *  @param OFFile instance, file must already be open for writing,
+   *   and the OFFile object must remain valid as long as this instance
+   *   exists.
+   */
+  DcmFileConsumer(OFFile& file);
 
   /// destructor
   virtual ~DcmFileConsumer();
@@ -99,8 +104,12 @@ private:
   /// private unimplemented copy assignment operator
   DcmFileConsumer& operator=(const DcmFileConsumer&);
 
-  /// the file we're actually writing to
-  OFFile file_;
+  /// container encapsulating a FILE *
+  OFFile file_container_;
+
+  /// reference the file we actually writing to.
+  /// Points to file_container_ in most, but not all cases
+  OFFile& file_;
 
   /// status
   OFCondition status_;
@@ -123,6 +132,13 @@ public:
    */
   DcmOutputFileStream(FILE *file);
 
+  /** constructor
+   *  @param OFFile instance, file must already be open for writing,
+   *   and the OFFile object must remain valid as long as this instance
+   *   exists.
+   */
+  DcmOutputFileStream(OFFile& file);
+
   /// destructor
   virtual ~DcmOutputFileStream();
 
@@ -137,6 +153,5 @@ private:
   /// the final consumer of the filter chain
   DcmFileConsumer consumer_;
 };
-
 
 #endif

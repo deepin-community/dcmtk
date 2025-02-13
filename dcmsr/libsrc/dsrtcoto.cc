@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2000-2018, OFFIS e.V.
+ *  Copyright (C) 2000-2021, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -29,9 +29,6 @@
 #include "dcmtk/dcmdata/dcvrds.h"
 
 #include "dcmtk/ofstd/ofstd.h"
-#define INCLUDE_CSTDIO
-#include "dcmtk/ofstd/ofstdinc.h"
-
 
 template<>
 const Float64& DSRgetEmptyItem<Float64>()
@@ -76,7 +73,7 @@ OFCondition DSRReferencedTimeOffsetList::print(STD_NAMESPACE ostream &stream,
     while (iterator != endPos)
     {
         /* need to convert float to avoid problems with decimal point ('.' or ',') */
-        OFStandard::ftoa(buffer, sizeof(buffer), *iterator, 0 ,0, 17 /* DBL_DIG + 2 for DICOM FD */);
+        OFStandard::ftoa(buffer, sizeof(buffer), *iterator, 0, 0, 17 /* DBL_DECIMAL_DIG for DICOM FD */);
         stream << buffer;
         iterator++;
         if (iterator != endPos)

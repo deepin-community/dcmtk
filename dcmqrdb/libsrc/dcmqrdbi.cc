@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1993-2019, OFFIS e.V.
+ *  Copyright (C) 1993-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -34,20 +34,19 @@ BEGIN_EXTERN_C
 #endif
 END_EXTERN_C
 
-#define INCLUDE_CCTYPE
-#define INCLUDE_CSTDARG
-#include "dcmtk/ofstd/ofstdinc.h"
 #include "dcmtk/ofstd/ofstd.h"
 
 #include "dcmtk/dcmqrdb/dcmqrdbs.h"
 #include "dcmtk/dcmqrdb/dcmqrdbi.h"
 #include "dcmtk/dcmqrdb/dcmqrcnf.h"
 #include "dcmtk/dcmqrdb/dcmqropt.h"
-
+#include "dcmtk/ofstd/ofstdinc.h"
 #include "dcmtk/dcmqrdb/dcmqridx.h"
 #include "dcmtk/dcmnet/diutil.h"
 #include "dcmtk/dcmdata/dcfilefo.h"
 #include "dcmtk/dcmdata/dcmatch.h"
+#include <ctime>
+
 
 /* ========================= static data ========================= */
 
@@ -723,7 +722,7 @@ static OFCondition DB_GetTagKeyAttr (DcmTagKey tag, DB_KEY_TYPE *keyAttr)
 
 static void DB_DuplicateElement (DB_SmallDcmElmt *src, DB_SmallDcmElmt *dst)
 {
-    bzero( (char*)dst, sizeof (DB_SmallDcmElmt));
+    memset( (char*)dst, 0, sizeof (DB_SmallDcmElmt));
     dst -> XTag = src -> XTag;
     dst -> ValueLength = src -> ValueLength;
 
@@ -731,7 +730,7 @@ static void DB_DuplicateElement (DB_SmallDcmElmt *src, DB_SmallDcmElmt *dst)
         dst -> PValueField = NULL;
     else {
         dst -> PValueField = (char *)malloc ((int) src -> ValueLength+1);
-        bzero(dst->PValueField, (size_t)(src->ValueLength+1));
+        memset(dst->PValueField, 0, (size_t)(src->ValueLength+1));
         if (dst->PValueField != NULL) {
             memcpy (dst -> PValueField,  src -> PValueField,
                 (size_t) src -> ValueLength);
@@ -838,6 +837,7 @@ public:
         if (!query->elem.ValueLength)
             return OFTrue;
 
+        (void)findRequestConverter;
         OFString buffer;
         const char* pQuery = query->elem.PValueField;
         const char* pQueryEnd = pQuery + query->elem.ValueLength;
@@ -859,7 +859,7 @@ public:
                     if (!findRequestConverter)
                         cond = findRequestConverter.selectCharacterSet(findRequestCharacterSet);
                     if (cond.good()) {
-                        // covert the string and cache the result, using the
+                        // convert the string and cache the result, using the
                         // specific delimitation characters for this VR
                         cond = findRequestConverter.convertString(
                             query->elem.PValueField,
@@ -964,7 +964,7 @@ OFBool DcmQueryRetrieveIndexDatabaseHandle::isConversionNecessary(const OFString
 
 /************
 **      Create the response list in specified handle,
-**      using informations found in an index record.
+**      using information found in an index record.
 **      Old response list is supposed freed
 **/
 
@@ -1119,12 +1119,20 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::testFindRequestList (
                     DCMQRDB_DEBUG("Non Unique Key found (level " << level << ")");
                     return QR_EC_IndexDatabaseError ;
                 }
+                else if (plist->elem.ValueLength == 0) {
+                    DCMQRDB_DEBUG("Unique Key value is empty (level " << level << ")");
+                    return QR_EC_IndexDatabaseError ;
+                }
                 else if (uniqueKeyFound) {
                     DCMQRDB_DEBUG("More than one Unique Key found (level " << level << ")");
                     return QR_EC_IndexDatabaseError ;
                 }
                 else
                     uniqueKeyFound = OFTrue ;
+            }
+            if (! uniqueKeyFound) {
+                DCMQRDB_DEBUG("No Unique Key found (level " << level << ")");
+                return QR_EC_IndexDatabaseError ;
             }
         }
 
@@ -1443,7 +1451,7 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::startFindRequest(
 
     if (!qrLevelFound) {
         /* The Query/Retrieve Level is missing */
-        status->setStatus(STATUS_FIND_Failed_IdentifierDoesNotMatchSOPClass);
+        status->setStatus(STATUS_FIND_Error_DataSetDoesNotMatchSOPClass);
         DCMQRDB_WARN("DB_startFindRequest(): missing Query/Retrieve Level");
         handle_->idxCounter = -1 ;
         DB_FreeElementList (handle_->findRequestList) ;
@@ -1477,9 +1485,9 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::startFindRequest(
             DB_FreeElementList (handle_->findRequestList) ;
             handle_->findRequestList = NULL ;
 #ifdef DEBUG
-            DCMQRDB_DEBUG("DB_startFindRequest () : STATUS_FIND_Failed_IdentifierDoesNotMatchSOPClass - Invalid RequestList");
+            DCMQRDB_DEBUG("DB_startFindRequest () : STATUS_FIND_Error_DataSetDoesNotMatchSOPClass - Invalid RequestList");
 #endif
-            status->setStatus(STATUS_FIND_Failed_IdentifierDoesNotMatchSOPClass);
+            status->setStatus(STATUS_FIND_Error_DataSetDoesNotMatchSOPClass);
             return (cond) ;
         }
     }
@@ -1577,7 +1585,11 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::startFindRequest(
 OFCondition DcmQueryRetrieveIndexDatabaseHandle::nextFindResponse (
                 DcmDataset      **findResponseIdentifiers,
                 DcmQueryRetrieveDatabaseStatus  *status,
+#ifdef DCMTK_ENABLE_CHARSET_CONVERSION
                 const DcmQueryRetrieveCharacterSetOptions& characterSetOptions)
+#else
+                const DcmQueryRetrieveCharacterSetOptions& /* characterSetOptions */)
+#endif
 {
 
     DB_ElementList      *plist = NULL;
@@ -1938,6 +1950,10 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::testMoveRequestList (
                     DCMQRDB_DEBUG("Non Unique Key found (level " << level << ")");
                     return QR_EC_IndexDatabaseError ;
                 }
+                else if (plist->elem.ValueLength == 0) {
+                    DCMQRDB_DEBUG("Unique Key value is empty (level " << level << ")");
+                    return QR_EC_IndexDatabaseError ;
+                }
                 else if (uniqueKeyFound) {
                     DCMQRDB_DEBUG("More than one Unique Key found (level " << level << ")");
                     return QR_EC_IndexDatabaseError ;
@@ -2023,7 +2039,7 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::startMoveRequest(
 #endif
 
     else {
-        status->setStatus(STATUS_MOVE_Failed_SOPClassNotSupported);
+        status->setStatus(STATUS_MOVE_Refused_SOPClassNotSupported);
         return (QR_EC_IndexDatabaseError) ;
     }
 
@@ -2118,7 +2134,7 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::startMoveRequest(
 
     if (!qrLevelFound) {
         /* The Query/Retrieve Level is missing */
-        status->setStatus(STATUS_MOVE_Failed_IdentifierDoesNotMatchSOPClass);
+        status->setStatus(STATUS_MOVE_Error_DataSetDoesNotMatchSOPClass);
         DCMQRDB_WARN("DB_startMoveRequest(): missing Query/Retrieve Level");
         handle_->idxCounter = -1 ;
         DB_FreeElementList (handle_->findRequestList) ;
@@ -2153,9 +2169,9 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::startMoveRequest(
             DB_FreeElementList (handle_->findRequestList) ;
             handle_->findRequestList = NULL ;
 #ifdef DEBUG
-            DCMQRDB_DEBUG("DB_startMoveRequest () : STATUS_MOVE_Failed_IdentifierDoesNotMatchSOPClass - Invalid RequestList");
+            DCMQRDB_DEBUG("DB_startMoveRequest () : STATUS_MOVE_Error_DataSetDoesNotMatchSOPClass - Invalid RequestList");
 #endif
-            status->setStatus(STATUS_MOVE_Failed_IdentifierDoesNotMatchSOPClass);
+            status->setStatus(STATUS_MOVE_Error_DataSetDoesNotMatchSOPClass);
             return (cond) ;
         }
     }
@@ -2285,7 +2301,7 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::nextMoveResponse(
     OFStandard::strlcpy(SOPInstanceUID, (char *) idxRec. SOPInstanceUID, SOPInstanceUIDSize) ;
     OFStandard::strlcpy(imageFileName, (char *) idxRec. filename, imageFileNameSize) ;
 
-    *numberOfRemainingSubOperations = --handle_->NumberRemainOperations ;
+    *numberOfRemainingSubOperations = OFstatic_cast(unsigned short, (--handle_->NumberRemainOperations));
 
     nextlist = handle_->moveCounterList->next ;
     free (handle_->moveCounterList) ;
@@ -2670,7 +2686,7 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::storeRequest (
     /**** Initialize an IdxRecord
     ***/
 
-    bzero((char*)&idxRec, sizeof(idxRec));
+    memset((char*)&idxRec, 0, sizeof(idxRec));
 
     DB_IdxInitRecord (&idxRec, 0) ;
 
@@ -2716,7 +2732,7 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::storeRequest (
     }
 
     /* InstanceStatus */
-    idxRec.hstat = (isNew) ? DVIF_objectIsNew : DVIF_objectIsNotNew;
+    idxRec.hstat = OFstatic_cast(char, ((isNew) ? DVIF_objectIsNew : DVIF_objectIsNotNew));
 
     /* InstanceDescription */
     OFBool useDescrTag = OFTrue;
@@ -2742,9 +2758,10 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::storeRequest (
                    (strcmp(SOPClassUID, UID_ChestCADSRStorage) == 0) ||
                    (strcmp(SOPClassUID, UID_ColonCADSRStorage) == 0) ||
                    (strcmp(SOPClassUID, UID_XRayRadiationDoseSRStorage) == 0) ||
+                   (strcmp(SOPClassUID, UID_EnhancedXRayRadiationDoseSRStorage) == 0) ||
                    (strcmp(SOPClassUID, UID_SpectaclePrescriptionReportStorage) == 0) ||
                    (strcmp(SOPClassUID, UID_MacularGridThicknessAndVolumeReportStorage) == 0) ||
-                   (strcmp(SOPClassUID, UID_ImplantationPlanSRDocumentStorage) == 0) ||
+                   (strcmp(SOPClassUID, UID_ImplantationPlanSRStorage) == 0) ||
                    (strcmp(SOPClassUID, UID_RadiopharmaceuticalRadiationDoseSRStorage) == 0) ||
                    (strcmp(SOPClassUID, UID_AcquisitionContextSRStorage) == 0) ||
                    (strcmp(SOPClassUID, UID_SimplifiedAdultEchoSRStorage) == 0) ||
@@ -2791,11 +2808,11 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::storeRequest (
     /* is dataset digitally signed? */
     if (strlen(idxRec.InstanceDescription) + 9 < DESCRIPTION_MAX_LENGTH)
     {
-        DcmStack stack;
-        if (dset->search(DCM_DigitalSignaturesSequence, stack, ESM_fromHere, OFTrue /* searchIntoSub */) == EC_Normal)
+        DcmSequenceOfItems *signature_sequence = NULL;
+        if (dset->findAndGetSequence(DCM_DigitalSignaturesSequence, signature_sequence, OFTrue /* searchIntoSub */).good() && signature_sequence)
         {
             /* in principle it should be checked whether there is _any_ non-empty digital signatures sequence, but ... */
-            if (((DcmSequenceOfItems *)stack.top())->card() > 0)
+            if (signature_sequence->card() > 0)
             {
                 if (strlen(idxRec.InstanceDescription) > 0)
                     OFStandard::strlcat(idxRec.InstanceDescription, " (Signed)", DESCRIPTION_MAX_LENGTH+1);
@@ -2833,7 +2850,7 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::storeRequest (
       return (QR_EC_IndexDatabaseError) ;
     }
 
-    bzero((char *)pStudyDesc, SIZEOF_STUDYDESC);
+    memset((char *)pStudyDesc, 0, SIZEOF_STUDYDESC);
     DB_GetStudyDesc(pStudyDesc) ;
 
     stat(imageFileName, &stat_buf) ;
@@ -3240,7 +3257,12 @@ OFCondition DcmQueryRetrieveIndexDatabaseHandle::makeNewStoreFileName(
     if (m==NULL) m = "XX";
     sprintf(prefix, "%s_", m);
     // unsigned int seed = fnamecreator.hashString(SOPInstanceUID);
-    unsigned int seed = (unsigned int)time(NULL);
+
+    // Make seed static so that multiple/concurrent calls to this method
+    // will not use a seed that is initialized by the same time. Instead,
+    // rely on a seed that is updated by each call to makeFilename below, thus
+    // resulting in more "randomness" when called within the same second.
+    static unsigned int seed = (unsigned int)time(NULL);
     newImageFileName[0]=0; // return empty string in case of error
     if (! fnamecreator.makeFilename(seed, handle_->storageArea, prefix, ".dcm", filename))
         return QR_EC_IndexDatabaseError;

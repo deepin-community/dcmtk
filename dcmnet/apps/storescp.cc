@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2020, OFFIS e.V.
+ *  Copyright (C) 1994-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -21,13 +21,6 @@
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTRING
-#define INCLUDE_CSTDARG
-#define INCLUDE_CCTYPE
-#define INCLUDE_CSIGNAL
-#include "dcmtk/ofstd/ofstdinc.h"
-
 BEGIN_EXTERN_C
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -41,12 +34,15 @@ BEGIN_EXTERN_C
 #endif
 END_EXTERN_C
 
+#include <cerrno>
+
 #ifdef HAVE_WINDOWS_H
 #include <direct.h>      /* for _mkdir() */
 #endif
 
 #include "dcmtk/ofstd/ofstd.h"
 #include "dcmtk/ofstd/ofconapp.h"
+#include "dcmtk/ofstd/ofbmanip.h"       /* for OFBitmanipTemplate */
 #include "dcmtk/ofstd/ofdatime.h"
 #include "dcmtk/dcmnet/dicom.h"         /* for DICOM_APPLICATION_ACCEPTOR */
 #include "dcmtk/dcmnet/dimse.h"
@@ -582,7 +578,7 @@ int main(int argc, char *argv[])
       app.checkValue(cmd.getValue(opt_profileName));
 
       // read configuration file
-      OFCondition cond = DcmAssociationConfigurationFile::initialize(asccfg, opt_configFile);
+      OFCondition cond = DcmAssociationConfigurationFile::initialize(asccfg, opt_configFile, OFFalse);
       if (cond.bad())
       {
         OFLOG_FATAL(storescpLogger, "cannot read config file: " << cond.text());
@@ -1014,7 +1010,7 @@ static OFCondition acceptAssociation(T_ASC_Network *net, DcmAssociationConfigura
 
   const char* transferSyntaxes[] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 10
                                      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  // 20
-                                     NULL };                                                      // +1
+                                     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };            // +8
   int numTransferSyntaxes = 0;
 
   // try to receive an association. Here we either want to use blocking or
@@ -1291,25 +1287,32 @@ static OFCondition acceptAssociation(T_ASC_Network *net, DcmAssociationConfigura
         transferSyntaxes[6] = UID_JPEGLSLosslessTransferSyntax;
         transferSyntaxes[7] = UID_RLELosslessTransferSyntax;
         transferSyntaxes[8] = UID_MPEG2MainProfileAtMainLevelTransferSyntax;
-        transferSyntaxes[9] = UID_MPEG2MainProfileAtHighLevelTransferSyntax;
-        transferSyntaxes[10] = UID_MPEG4HighProfileLevel4_1TransferSyntax;
-        transferSyntaxes[11] = UID_MPEG4BDcompatibleHighProfileLevel4_1TransferSyntax;
-        transferSyntaxes[12] = UID_MPEG4HighProfileLevel4_2_For2DVideoTransferSyntax;
-        transferSyntaxes[13] = UID_MPEG4HighProfileLevel4_2_For3DVideoTransferSyntax;
-        transferSyntaxes[14] = UID_MPEG4StereoHighProfileLevel4_2TransferSyntax;
-        transferSyntaxes[15] = UID_HEVCMainProfileLevel5_1TransferSyntax;
-        transferSyntaxes[16] = UID_HEVCMain10ProfileLevel5_1TransferSyntax;
-        transferSyntaxes[17] = UID_DeflatedExplicitVRLittleEndianTransferSyntax;
+        transferSyntaxes[9] = UID_FragmentableMPEG2MainProfileMainLevelTransferSyntax;
+        transferSyntaxes[10] = UID_MPEG2MainProfileAtHighLevelTransferSyntax;
+        transferSyntaxes[11] = UID_FragmentableMPEG2MainProfileHighLevelTransferSyntax;
+        transferSyntaxes[12] = UID_MPEG4HighProfileLevel4_1TransferSyntax;
+        transferSyntaxes[13] = UID_FragmentableMPEG4HighProfileLevel4_1TransferSyntax;
+        transferSyntaxes[14] = UID_MPEG4BDcompatibleHighProfileLevel4_1TransferSyntax;
+        transferSyntaxes[15] = UID_FragmentableMPEG4BDcompatibleHighProfileLevel4_1TransferSyntax;
+        transferSyntaxes[16] = UID_MPEG4HighProfileLevel4_2_For2DVideoTransferSyntax;
+        transferSyntaxes[17] = UID_FragmentableMPEG4HighProfileLevel4_2_For2DVideoTransferSyntax;
+        transferSyntaxes[18] = UID_MPEG4HighProfileLevel4_2_For3DVideoTransferSyntax;
+        transferSyntaxes[19] = UID_FragmentableMPEG4HighProfileLevel4_2_For3DVideoTransferSyntax;
+        transferSyntaxes[20] = UID_MPEG4StereoHighProfileLevel4_2TransferSyntax;
+        transferSyntaxes[21] = UID_FragmentableMPEG4StereoHighProfileLevel4_2TransferSyntax;
+        transferSyntaxes[22] = UID_HEVCMainProfileLevel5_1TransferSyntax;
+        transferSyntaxes[23] = UID_HEVCMain10ProfileLevel5_1TransferSyntax;
+        transferSyntaxes[24] = UID_DeflatedExplicitVRLittleEndianTransferSyntax;
         if (gLocalByteOrder == EBO_LittleEndian)
         {
-          transferSyntaxes[18] = UID_LittleEndianExplicitTransferSyntax;
-          transferSyntaxes[19] = UID_BigEndianExplicitTransferSyntax;
+          transferSyntaxes[25] = UID_LittleEndianExplicitTransferSyntax;
+          transferSyntaxes[26] = UID_BigEndianExplicitTransferSyntax;
         } else {
-          transferSyntaxes[18] = UID_BigEndianExplicitTransferSyntax;
-          transferSyntaxes[19] = UID_LittleEndianExplicitTransferSyntax;
+          transferSyntaxes[25] = UID_BigEndianExplicitTransferSyntax;
+          transferSyntaxes[26] = UID_LittleEndianExplicitTransferSyntax;
         }
-        transferSyntaxes[20] = UID_LittleEndianImplicitTransferSyntax;
-        numTransferSyntaxes = 21;
+        transferSyntaxes[27] = UID_LittleEndianImplicitTransferSyntax;
+        numTransferSyntaxes = 28;
       } else {
         /* We prefer explicit transfer syntaxes.
          * If we are running on a Little Endian machine we prefer
@@ -1857,12 +1860,14 @@ storeSCPCallback(
               if (!subdirectoryName.empty())
                 subdirectoryName += '_';
               subdirectoryName += currentStudyInstanceUID;
+              OFStandard::sanitizeFilename(subdirectoryName);
               break;
             case ESM_PatientName:
               // pattern: "[Patient's Name]_[YYYYMMDD]_[HHMMSSMMM]"
               subdirectoryName = currentPatientName;
               subdirectoryName += '_';
               subdirectoryName += timestamp;
+              OFStandard::sanitizeFilename(subdirectoryName);
               break;
             case ESM_None:
               break;
@@ -1871,24 +1876,31 @@ storeSCPCallback(
           // create subdirectoryPathAndName (string with full path to new subdirectory)
           OFStandard::combineDirAndFilename(subdirectoryPathAndName, OFStandard::getDirNameFromPath(tmpStr, cbdata->imageFileName), subdirectoryName);
 
-          // check if the subdirectory already exists
-          // if it already exists dump a warning
-          if( OFStandard::dirExists(subdirectoryPathAndName) )
-            OFLOG_WARN(storescpLogger, "subdirectory for study already exists: " << subdirectoryPathAndName);
-          else
-          {
-            // if it does not exist create it
-            OFLOG_INFO(storescpLogger, "creating new subdirectory for study: " << subdirectoryPathAndName);
+          // create the subdirectory and then check errno, in order to avoid a "time of check to time of use" (TOC-TOU) race condition.
 #ifdef HAVE_WINDOWS_H
-            if( _mkdir( subdirectoryPathAndName.c_str() ) == -1 )
+          int mkdirStatus = _mkdir( subdirectoryPathAndName.c_str() );
 #else
-            if( mkdir( subdirectoryPathAndName.c_str(), S_IRWXU | S_IRWXG | S_IRWXO ) == -1 )
+          int mkdirStatus = mkdir( subdirectoryPathAndName.c_str(), S_IRWXU | S_IRWXG | S_IRWXO );
 #endif
+
+          if( mkdirStatus == -1 )
+          {
+            if (errno == EEXIST)
+            {
+              // If the subdirectory already exists, then re-use it. It might have been created by another
+              // process receiving images in parallel.
+              OFLOG_INFO(storescpLogger, "using existing subdirectory for study: " << subdirectoryPathAndName);
+            }
+            else
             {
               OFLOG_ERROR(storescpLogger, "could not create subdirectory for study: " << subdirectoryPathAndName);
               rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
               return;
             }
+          }
+          else
+          {
+            OFLOG_INFO(storescpLogger, "created new subdirectory for study: " << subdirectoryPathAndName);
             // all objects of a study have been received, so a new subdirectory is started.
             // ->timename counter can be reset, because the next filename can't cause a duplicate.
             // if no reset would be done, files of a new study (->new directory) would start with a counter in filename
@@ -2062,9 +2074,11 @@ static OFCondition storeSCP(
     }
     else
     {
-      // don't create new UID, use the study instance UID as found in object
+      // Use the SOP instance UID as found in the C-STORE request message as part of the filename
+      OFString uid(OFSTRING_GUARD(req->AffectedSOPInstanceUID));
+      OFStandard::sanitizeFilename(uid);
       sprintf(imageFileName, "%s%c%s.%s%s", opt_outputDirectory.c_str(), PATH_SEPARATOR, dcmSOPClassUIDToModality(req->AffectedSOPClassUID, "UNKNOWN"),
-        req->AffectedSOPInstanceUID, opt_fileNameExtension.c_str());
+        uid.c_str(), opt_fileNameExtension.c_str());
     }
   }
 
@@ -2422,8 +2436,13 @@ static void executeCommand( const OFString &cmd )
 #endif
 }
 
-
+#ifdef HAVE_WAITPID
 static void cleanChildren(pid_t pid, OFBool synch)
+#elif defined(HAVE_WAIT3)
+static void cleanChildren(pid_t /* pid */, OFBool synch)
+#else
+static void cleanChildren(pid_t /* pid */, OFBool /* synch */)
+#endif
   /*
    * This function removes child processes that have terminated,
    * i.e. converted to zombies. Should be called now and then.

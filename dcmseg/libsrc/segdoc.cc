@@ -1,6 +1,6 @@
 /*
+ *  Copyright (C) 2015-2023, Open Connections GmbH
  *
- *  Copyright (C) 2015-2019, Open Connections GmbH
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation are maintained by
@@ -316,6 +316,16 @@ OFBool DcmSegmentation::getCheckFGOnWrite()
     return m_FGInterface.getCheckOnWrite();
 }
 
+void DcmSegmentation::setCheckDimensionsOnWrite(const OFBool doCheck)
+{
+    m_DimensionModule.setCheckOnWrite(doCheck);
+}
+
+OFBool DcmSegmentation::getCheckDimensionsOnWrite()
+{
+    return m_DimensionModule.getCheckOnWrite();
+}
+
 OFCondition DcmSegmentation::writeWithSeparatePixelData(DcmItem& dataset, Uint8*& pixData, size_t& pixDataLength)
 {
     // FGInterface::write() will know whether it has to check FG structure
@@ -392,14 +402,12 @@ OFCondition DcmSegmentation::writeWithSeparatePixelData(DcmItem& dataset, Uint8*
         if (m_SegmentationType == DcmSegTypes::ST_BINARY)
             result = writeBinaryFrames(pixData, rows, cols, pixDataLength);
         else if (m_SegmentationType == DcmSegTypes::ST_FRACTIONAL)
-            result = writeFractionalFrames(pixData, numFrames, pixDataLength);
+            result = writeFractionalFrames(pixData);
         else
             result = SG_EC_UnknownSegmentationType;
         if (result.bad())
         {
             delete[] pixData;
-            pixData       = NULL;
-            pixDataLength = 0;
         }
     }
 
@@ -455,9 +463,12 @@ OFCondition DcmSegmentation::addSegment(DcmSegment* seg, Uint16& segmentNumber)
 
 OFCondition DcmSegmentation::addFrame(Uint8* pixData)
 {
-    OFCondition result;
+    if (m_Frames.size() >= DCM_SEG_MAX_FRAMES)
+        return SG_EC_MaxFramesReached;
 
-    Uint16 rows, cols;
+    OFCondition result;
+    Uint16 rows = 0;
+    Uint16 cols = 0;
     if (getImagePixel().getRows(rows).good() && getImagePixel().getColumns(cols).good())
     {
         DcmIODTypes::Frame* frame = NULL;
@@ -532,7 +543,7 @@ void DcmSegmentation::getFramesForSegment(const size_t& segmentNumber, OFVector<
         Uint16 refSeg;
         if (fg->getReferencedSegmentNumber(refSeg).good())
         {
-            if (refSeg == segmentNumber)
+            if (OFstatic_cast(size_t, refSeg) == segmentNumber)
             {
                 frameNumbers.push_back(count);
             }
@@ -548,6 +559,9 @@ OFCondition DcmSegmentation::addForAllFrames(const FGBase& group)
 OFCondition
 DcmSegmentation::addFrame(Uint8* pixData, const Uint16 segmentNumber, const OFVector<FGBase*>& perFrameInformation)
 {
+    if (m_Frames.size() >= DCM_SEG_MAX_FRAMES)
+        return SG_EC_MaxFramesReached;
+
     Uint32 frameNo = OFstatic_cast(Uint32, m_Frames.size()); // will be the index of the frame (counted from 0)
     OFCondition result;
 
@@ -726,7 +740,7 @@ OFCondition DcmSegmentation::setContentIdentification(const ContentIdentificatio
 
 /* -- Getter for DICOM attributes -- */
 
-DcmSegment* DcmSegmentation::getSegment(const unsigned int segmentNumber)
+DcmSegment* DcmSegmentation::getSegment(const size_t segmentNumber)
 {
     // check for invalid index
     if ((segmentNumber == 0) || (segmentNumber > m_Segments.size()))
@@ -738,7 +752,7 @@ DcmSegment* DcmSegmentation::getSegment(const unsigned int segmentNumber)
     return m_Segments[segmentNumber - 1];
 }
 
-OFBool DcmSegmentation::getSegmentNumber(const DcmSegment* segment, unsigned int& segmentNumber)
+OFBool DcmSegmentation::getSegmentNumber(const DcmSegment* segment, size_t& segmentNumber)
 {
     segmentNumber = 0;
     size_t max    = m_Segments.size();
@@ -746,8 +760,7 @@ OFBool DcmSegmentation::getSegmentNumber(const DcmSegment* segment, unsigned int
     {
         if (m_Segments.at(count) == segment)
         {
-            // logical segment numbering starts with 1 but vector index with 0
-            segmentNumber = OFstatic_cast(unsigned int, count + 1);
+            segmentNumber = OFstatic_cast(Uint16, count + 1);
             return OFTrue;
         }
     }
@@ -805,9 +818,10 @@ OFCondition DcmSegmentation::readSegments(DcmItem& item)
 OFCondition DcmSegmentation::readFrames(DcmItem& dataset)
 {
     OFCondition result;
-    Uint16 allocated, stored, high, spp, pixelRep, rows, cols, numberOfFrames;
-    allocated = stored = high = spp = rows = cols = numberOfFrames = 0;
-    pixelRep                                                       = 2; // invalid value for this attribute
+    Uint16 allocated, stored, high, spp, pixelRep, rows, cols;
+    Uint32 numberOfFrames = 0;
+    allocated = stored = high = spp = rows = cols = 0;
+    pixelRep                                      = 2; // invalid value for this attribute
     OFString colorModel;
 
     /* check the typical image pixel attributes and get correct(ed) values */
@@ -872,7 +886,7 @@ OFCondition DcmSegmentation::getAndCheckImagePixelAttributes(DcmItem& dataset,
                                                              Uint16& pixelRep,
                                                              Uint16& rows,
                                                              Uint16& cols,
-                                                             Uint16& numberOfFrames,
+                                                             Uint32& numberOfFrames,
                                                              OFString& colorModel)
 {
     OFBool fail = OFFalse;
@@ -910,7 +924,7 @@ OFCondition DcmSegmentation::getAndCheckImagePixelAttributes(DcmItem& dataset,
         }
         else
         {
-            numberOfFrames = OFstatic_cast(Uint16, numFrames);
+            numberOfFrames = OFstatic_cast(Uint32, numFrames);
         }
     }
 
@@ -983,9 +997,12 @@ OFCondition DcmSegmentation::writeDataset(DcmItem& dataset)
     OFCondition result = writeWithSeparatePixelData(dataset, pixData, pixDataLength);
     if (result.good())
     {
+        // Check whether pixel data length exceeds maximum number of bytes for uncompressed pixel data,
+        // enforced by length field of Pixel Data attribute VR OB/OW if written in explicit VR transfer syntax.
         if (pixDataLength <= 4294967294UL)
         {
-            result = dataset.putAndInsertUint8Array(DCM_PixelData, pixData, OFstatic_cast(unsigned long, pixDataLength));
+            result
+                = dataset.putAndInsertUint8Array(DCM_PixelData, pixData, OFstatic_cast(unsigned long, pixDataLength));
         }
         else
         {
@@ -1024,15 +1041,10 @@ OFCondition DcmSegmentation::writeMultiFrameFunctionalGroupsModule(DcmItem& data
 
 OFCondition DcmSegmentation::writeMultiFrameDimensionModule(DcmItem& dataset)
 {
-    OFCondition result = m_DimensionModule.checkDimensions(&dataset);
-    if (result.good())
-    {
-        result = m_DimensionModule.write(dataset);
-    }
-    return result;
+    return m_DimensionModule.write(dataset);
 }
 
-OFCondition DcmSegmentation::writeFractionalFrames(Uint8* pixData, const Uint32 numFrames, const size_t pixDataLength)
+OFCondition DcmSegmentation::writeFractionalFrames(Uint8* pixData)
 {
     OFVector<DcmIODTypes::Frame*>::iterator it = m_Frames.begin();
     // Just copy bytes for each frame as is
@@ -1158,7 +1170,7 @@ void DcmSegmentation::clearData()
 OFBool DcmSegmentation::checkPixDataLength(DcmElement* pixelData,
                                            const Uint16 rows,
                                            const Uint16 cols,
-                                           const Uint16& numberOfFrames)
+                                           const Uint32& numberOfFrames)
 {
     // Get actual length of pixel data in bytes
     size_t length = pixelData->getLengthField();
@@ -1210,7 +1222,7 @@ OFCondition DcmSegmentation::getTotalBytesRequired(const Uint16& rows,
     if (m_SegmentationType == DcmSegTypes::ST_BINARY)
     {
         // check whether the 1-bit pixels exactly fit into bytes
-        remainder = (OFstatic_cast(size_t, rows) * cols) % 8;
+        remainder = bytesRequired % 8;
         // number of bytes that work on an exact fit
         bytesRequired = bytesRequired / 8;
         // add one byte if we have a remainder
@@ -1311,9 +1323,14 @@ OFBool DcmSegmentation::check(const OFBool checkFGStructure)
         DCMSEG_ERROR("No segments defined");
         return OFFalse;
     }
+    if (m_Segments.size() > DCM_SEG_MAX_SEGMENTS)
+    {
+        DCMSEG_ERROR("Too many segments defined");
+        return OFFalse;
+    }
     if (m_Segments.size() > m_Frames.size())
     {
-        DCMSEG_ERROR("There are more segments than frames defined");
+        DCMSEG_ERROR("More segments than frames defined");
         return OFFalse;
     }
 
@@ -1390,8 +1407,7 @@ OFCondition DcmSegmentation::decompress(DcmDataset& dset)
     // If the original transfer syntax could have been lossy, print warning
     if (dset.hasRepresentation(EXS_LittleEndianExplicit, NULL))
     {
-        if (xfer.isEncapsulated() && (xfer.getXfer() != EXS_RLELossless)
-            && (xfer.getXfer() != EXS_DeflatedLittleEndianExplicit))
+        if (xfer.isEncapsulated() && (xfer != EXS_RLELossless) && (xfer != EXS_DeflatedLittleEndianExplicit))
         {
             DCMSEG_WARN("Dataset has been compressed using a (possibly) lossy compression scheme (ignored)");
         }
@@ -1401,7 +1417,7 @@ OFCondition DcmSegmentation::decompress(DcmDataset& dset)
     else if (xfer.isEncapsulated())
     {
         // RLE compression is fine (truly lossless). Deflated is handled internally by DCMTK.
-        if (xfer.getXfer() == EXS_RLELossless)
+        if (xfer == EXS_RLELossless)
         {
             DCMSEG_DEBUG("DICOM file is RLE-compressed, converting to uncompressed transfer syntax first");
             result = DcmIODUtil::decompress(dset);
@@ -1431,7 +1447,7 @@ void DcmSegmentation::concatFrames(OFVector<DcmIODTypes::Frame*> frames, Uint8* 
         // previous frame; mask out those bits not belonging to previous frame.
         // This will potentially create some empty bits on the left of the byte,
         // that the current frame can use to store the its own first bits.
-        firstByte = (writePos[0] << freeBits) >> freeBits;
+        firstByte = OFstatic_cast(unsigned char, (writePos[0] << freeBits)) >> freeBits;
         memcpy(writePos, (*frame)->pixData, (*frame)->length);
         // If the previous frame left over some unused bits, shift the current frame
         // that number of bits to the left, and restore the original bits of the
@@ -1461,6 +1477,6 @@ void DcmSegmentation::concatFrames(OFVector<DcmIODTypes::Frame*> frames, Uint8* 
     // last byte. Fill them with zeros (though not required by the standard).
     if (freeBits > 0)
     {
-        *writePos = (*writePos >> freeBits) << freeBits;
+        *writePos = (OFstatic_cast(unsigned char, *writePos) >> freeBits) << freeBits;
     }
 }

@@ -1,12 +1,12 @@
 /*
  *
- *  Copyright (C) 2015-2020, J. Riesmeier, Oldenburg, Germany
+ *  Copyright (C) 2015-2023, J. Riesmeier, Oldenburg, Germany
  *  All rights reserved.  See COPYRIGHT file for details.
  *
- *  Header file for class CID100_QuantitativeDiagnosticImagingProcedures
+ *  Header file for class CID100_QuantitativeDiagnosticImagingProcedure
  *
- *  Generated automatically from DICOM PS 3.16-2020e
- *  File created on 2020-11-25 11:12:49 by J. Riesmeier
+ *  Generated automatically from DICOM PS 3.16-2023a
+ *  File created on 2023-02-02 17:56:44 by J. Riesmeier
  *
  */
 
@@ -27,16 +27,16 @@
  *---------------------*/
 
 /** Implementation of DCMR Context Group:
- *  CID 100 - Quantitative Diagnostic Imaging Procedures.
- *  (type: extensible, version: 20190817)
+ *  CID 100 - Quantitative Diagnostic Imaging Procedure.
+ *  (type: extensible, version: 20210905)
  */
-class DCMTK_CMR_EXPORT CID100_QuantitativeDiagnosticImagingProcedures
+class DCMTK_CMR_EXPORT CID100_QuantitativeDiagnosticImagingProcedure
   : public DSRContextGroup
 {
 
   public:
 
-    /** types of quantitative diagnostic imaging procedures
+    /** types of quantitative diagnostic imaging procedure
      */
     enum EnumType
     {
@@ -46,7 +46,7 @@ class DCMTK_CMR_EXPORT CID100_QuantitativeDiagnosticImagingProcedures
         MagneticResonanceImagingGuidance,
         /// (126020,DCM,"Multiparametric MRI")
         MultiparametricMRI,
-        /// (126021,DCM,"Multiparametric MRI of prostate")
+        /// (719178004,SCT,"Multiparametric MRI of prostate")
         MultiparametricMRIOfProstate,
         /// (126022,DCM,"Multiparametric MRI of whole body")
         MultiparametricMRIOfWholeBody,
@@ -82,15 +82,15 @@ class DCMTK_CMR_EXPORT CID100_QuantitativeDiagnosticImagingProcedures
      *                         for this context group, i.e. no checks are performed.
      *                         Call DSRContextGroup::checkSelectedValue() if needed.
      */
-    CID100_QuantitativeDiagnosticImagingProcedures(const DSRCodedEntryValue &selectedValue = DSRCodedEntryValue());
+    CID100_QuantitativeDiagnosticImagingProcedure(const DSRCodedEntryValue &selectedValue = DSRCodedEntryValue());
 
     /** constructor
      ** @param  selectedValue         type mapped to a coded entry that is selected as the
      *                                current value
      ** @param  enhancedEncodingMode  set enhanced encoding mode for coded entry (if enabled)
      */
-    CID100_QuantitativeDiagnosticImagingProcedures(const EnumType selectedValue,
-                                                   const OFBool enhancedEncodingMode = OFFalse);
+    CID100_QuantitativeDiagnosticImagingProcedure(const EnumType selectedValue,
+                                                  const OFBool enhancedEncodingMode = OFFalse);
 
     /** select a coded entry given by its type as the current value
      ** @param  selectedValue         type mapped to a coded entry that is selected as the
@@ -184,7 +184,7 @@ class DCMTK_CMR_EXPORT CID100_QuantitativeDiagnosticImagingProcedures
  *-------------------*/
 
 // define short name for the context group class
-typedef CID100_QuantitativeDiagnosticImagingProcedures CMR_CID100;
+typedef CID100_QuantitativeDiagnosticImagingProcedure CMR_CID100;
 
 
 #endif

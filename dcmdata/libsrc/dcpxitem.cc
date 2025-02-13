@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2019, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -21,11 +21,6 @@
 
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
-
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/ofstd/ofstream.h"
 #include "dcmtk/dcmdata/dcpxitem.h"
@@ -374,6 +369,10 @@ OFCondition DcmPixelItem::writeSignatureFormat(
               /* write tag and length information to it, do something */
               if (getTransferState() == ERW_init)
               {
+                  // Force a compression filter (if any) to process the input buffer, by calling outStream.write().
+                  // This ensures that we cannot get stuck if there are just a few bytes available in the buffer
+                  outStream.write(NULL, 0);
+
                   /* first compare with DCM_TagInfoLength (12). If there is not enough space
                    * in the buffer, check if the buffer is still sufficient for the requirements
                    * of this element, which may need only 8 instead of 12 bytes.
@@ -410,7 +409,7 @@ OFCondition DcmPixelItem::writeSignatureFormat(
                       /* written to the stream) */
                       len = OFstatic_cast(Uint32, outStream.write(&value[getTransferredBytes()], getLengthField() - getTransferredBytes()));
 
-                      /* increase the amount of bytes which have been transfered correspondingly */
+                      /* increase the amount of bytes which have been transferred correspondingly */
                       incTransferredBytes(len);
 
                       /* see if there is something fishy with the stream */
@@ -431,7 +430,7 @@ OFCondition DcmPixelItem::writeSignatureFormat(
                           // write as many bytes from cache buffer to stream as possible
                           len = wcache->writeBuffer(outStream);
 
-                          /* increase the amount of bytes which have been transfered correspondingly */
+                          /* increase the amount of bytes which have been transferred correspondingly */
                           incTransferredBytes(len);
 
                           /* see if there is something fishy with the stream */

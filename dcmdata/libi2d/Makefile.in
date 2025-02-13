@@ -19,28 +19,22 @@ dcmdatadir = $(top_srcdir)/../dcmdata
 LOCALINCLUDES = -I$(ofstddir)/include -I$(dcmdatadir)/include -I$(oflogdir)/include
 LOCALDEFS =
 
-objs = i2d.o i2dplvlp.o i2djpgs.o i2dbmps.o i2dplsc.o i2dplnsc.o
+objs = i2d.o i2dplvlp.o i2djpgs.o i2dbmps.o i2dplsc.o i2dplnsc.o i2dplop.o i2doutpl.o
 
 library = libi2d.$(LIBEXT)
 
 
 all: $(library)
 
+$(library): $(objs)
+	$(AR) $(ARFLAGS) $@ $(objs)
+	$(RANLIB) $@
+
+
 install: $(library)
 	$(configdir)/mkinstalldirs $(DESTDIR)$(libdir)
 	$(INSTALL_DATA) $(library) $(DESTDIR)$(libdir)/$(library)
 	$(RANLIB) $(DESTDIR)$(libdir)/$(library)
-
-
-install-lib: $(library)
-	$(configdir)/mkinstalldirs $(DESTDIR)$(libdir)
-	$(INSTALL_DATA) $(library) $(DESTDIR)$(libdir)/$(library)
-	$(RANLIB) $(DESTDIR)$(libdir)/$(library)
-
-
-$(library): $(objs)
-	$(AR) $(ARFLAGS) $@ $(objs)
-	$(RANLIB) $@
 
 
 clean:

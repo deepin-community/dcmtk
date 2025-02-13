@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1998-2020, OFFIS e.V.
+ *  Copyright (C) 1998-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -61,12 +61,6 @@
 #include "dcmtk/dcmpstat/dvpsri.h"    /* for DVPSReferencedImage, needed by MSVC5 with STL */
 #include "dcmtk/dcmqrdb/dcmqrdbi.h"   /* for DB_UpperMaxBytesPerStudy */
 #include "dcmtk/dcmqrdb/dcmqrdbs.h"   /* for DcmQueryRetrieveDatabaseStatus */
-
-#define INCLUDE_CSTDIO
-#define INCLUDE_CCTYPE
-#define INCLUDE_CMATH
-#define INCLUDE_UNISTD
-#include "dcmtk/ofstd/ofstdinc.h"
 
 BEGIN_EXTERN_C
 #ifdef HAVE_SYS_TYPES_H
@@ -2004,9 +1998,16 @@ int DVInterface::deleteImageFile(const char *filename)
 {
     if ((filename != NULL) && (pHandle != NULL))
     {
-        const char *pos;
-        if (((pos = strrchr(filename, OFstatic_cast(int, PATH_SEPARATOR))) == NULL) ||   // check whether image file resides in index.dat directory
-            (strncmp(filename, pHandle->getStorageArea(), pos - filename) == 0))
+        const char *pos = strrchr(filename, OFstatic_cast(int, PATH_SEPARATOR));
+#ifdef _WIN32
+        // Windows accepts both backslash and forward slash as path separators.
+        const char *pos2 = strrchr(filename, OFstatic_cast(int, '/'));
+
+        // if pos2 points to a character closer to the end of the string, use this instead of strPos
+        if ((pos == NULL) || ((pos2 != NULL) && (pos2 > pos))) pos = pos2;
+#endif
+        // check whether image file resides in index.dat directory
+        if ((pos == NULL) || (strncmp(filename, pHandle->getStorageArea(), pos - filename) == 0))
         {
 //            DB_deleteImageFile((/*const */char *)filename);
             if (unlink(filename) == 0)
@@ -2473,7 +2474,7 @@ OFCondition DVInterface::terminateQueryRetrieveServer()
   OFCondition cond = ASC_initializeNetwork(NET_REQUESTOR, 0, 30, &net);
   if (cond.good())
   {
-    cond = ASC_createAssociationParameters(&params, DEFAULT_MAXPDU);
+    cond = ASC_createAssociationParameters(&params, DEFAULT_MAXPDU, dcmConnectionTimeout.get());
     if (cond.good())
     {
       ASC_setAPTitles(params, getNetworkAETitle(), getQueryRetrieveAETitle(), NULL);
@@ -2725,6 +2726,8 @@ OFCondition DVInterface::saveHardcopyGrayscaleImage(
       if (EC_Normal==status) status = DVPSHelper::putStringValue(dataset, DCM_InstanceCreationDate, aString.c_str());
       DVPSHelper::currentTime(aString);
       if (EC_Normal==status) status = DVPSHelper::putStringValue(dataset, DCM_InstanceCreationTime, aString.c_str());
+      const char *specificCharSet = pState->getCharsetString();
+      if (status.good() && specificCharSet) status = DVPSHelper::putStringValue(dataset, DCM_SpecificCharacterSet, specificCharSet);
 
       // Hardcopy Grayscale Image Module
       if (EC_Normal==status) status = DVPSHelper::putStringValue(dataset, DCM_PhotometricInterpretation, "MONOCHROME2");
@@ -3629,7 +3632,7 @@ OFCondition DVInterface::terminatePrintServer()
     OFCondition cond = ASC_initializeNetwork(NET_REQUESTOR, 0, 30, &net);
     if (cond.good())
     {
-      cond = ASC_createAssociationParameters(&params, DEFAULT_MAXPDU);
+      cond = ASC_createAssociationParameters(&params, DEFAULT_MAXPDU, dcmConnectionTimeout.get());
       if (cond.good())
       {
         if (useTLS)
@@ -3674,21 +3677,16 @@ OFCondition DVInterface::terminatePrintServer()
           DcmTLSTransportLayer *tLayer = new DcmTLSTransportLayer(NET_REQUESTOR, tlsRandomSeedFile.c_str(), OFTrue);
           if (tLayer)
           {
-            if (tlsCACertificateFolder) tLayer->addTrustedCertificateDir(tlsCACertificateFolder, keyFileFormat);
-            if (tlsDHParametersFile.size() > 0) tLayer->setTempDHParameters(tlsDHParametersFile.c_str());
-            tLayer->setPrivateKeyPasswd(tlsPrivateKeyPassword); // never prompt on console
-            tLayer->setPrivateKeyFile(tlsPrivateKeyFile.c_str(), keyFileFormat);
-            tLayer->setCertificateFile(tlsCertificateFile.c_str(), keyFileFormat);
-            tLayer->setCertificateVerification(DCV_ignoreCertificate);
-
-           // determine TLS profile
-             OFString profileName;
+            // determine TLS profile
+            OFString profileName;
             const char *profileNamePtr = getTargetTLSProfile(target);
             if (profileNamePtr) profileName = profileNamePtr;
-            DcmTLSSecurityProfile tlsProfile = TSP_Profile_BCP195;  // default
-            if (profileName == "BCP195-ND") tlsProfile = TSP_Profile_BCP195_ND;
-            else if (profileName == "BCP195-EX") tlsProfile = TSP_Profile_BCP195_Extended;
+            DcmTLSSecurityProfile tlsProfile = TSP_Profile_BCP_195_RFC_8996;  // default
+            if (profileName == "BCP195-RFC8996") tlsProfile = TSP_Profile_BCP_195_RFC_8996;
+            else if (profileName == "BCP195-RFC8996-MOD") tlsProfile = TSP_Profile_BCP_195_RFC_8996_Modified;
             else if (profileName == "BCP195") tlsProfile = TSP_Profile_BCP195;
+            else if (profileName == "BCP195-ND") tlsProfile = TSP_Profile_BCP195_ND;
+            else if (profileName == "BCP195-EX") tlsProfile = TSP_Profile_BCP195_Extended;
             else if (profileName == "AES") tlsProfile = TSP_Profile_AES;
             else if (profileName == "BASIC") tlsProfile = TSP_Profile_Basic;
             else if (profileName == "NULL") tlsProfile = TSP_Profile_IHE_ATNA_Unencrypted;
@@ -3698,6 +3696,14 @@ OFCondition DVInterface::terminatePrintServer()
 
             // activate cipher suites
             (void) tLayer->activateCipherSuites();
+
+            // set certificate, private key, DH parameters etc.
+            if (tlsCACertificateFolder) tLayer->addTrustedCertificateDir(tlsCACertificateFolder, keyFileFormat);
+            if (tlsDHParametersFile.size() > 0) tLayer->setTempDHParameters(tlsDHParametersFile.c_str());
+            tLayer->setPrivateKeyPasswd(tlsPrivateKeyPassword); // never prompt on console
+            tLayer->setPrivateKeyFile(tlsPrivateKeyFile.c_str(), keyFileFormat);
+            tLayer->setCertificateFile(tlsCertificateFile.c_str(), keyFileFormat, tlsProfile);
+            tLayer->setCertificateVerification(DCV_ignoreCertificate);
 
             ASC_setTransportLayer(net, tLayer, 1);
           }

@@ -1,10 +1,12 @@
-dcmtk (3.6.1~20150924-1) UNRELEASED: urgency=medium 
+dcmtk (3.6.1~20150924-1) unstable; urgency=medium 
 
   With this new snapshot upstream removed the  wwwapps tools and 
   perl scripts that were developed for the CAR 1996 modality showcase, and 
   that are largely unused and unsupported. 
 
-dcmtk (3.6.1~20150629-2) UNRELEASED; urgency=medium
+ -- Gert Wollny <gw.fossdev@gmail.com>  Tue, 01 Dec 2015 02:46:03 +0100
+
+dcmtk (3.6.1~20150629-2) unstable; urgency=medium
 
   Version 3.6.1 has compatible change of the index.dat format that is not
   backward compatible, and the current dcmtk is trashing the memory (one

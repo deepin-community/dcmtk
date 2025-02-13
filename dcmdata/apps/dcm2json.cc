@@ -1,6 +1,6 @@
 /*
 *
-*  Copyright (C) 2016-2020, OFFIS e.V.
+*  Copyright (C) 2016-2022, OFFIS e.V.
 *  All rights reserved.  See COPYRIGHT file for details.
 *
 *  This software and supporting documentation were developed by
@@ -56,7 +56,8 @@ static OFCondition writeFile(STD_NAMESPACE ostream &out,
     const E_FileReadMode readMode,
     const OFBool format,
     const OFBool printMetaInfo,
-    const OFBool encode_extended)
+    const OFBool encode_extended,
+    const DcmJsonFormat::NumStringPolicy opt_ns_policy)
 {
     OFCondition result = EC_IllegalParameter;
     if ((ifname != NULL) && (dfile != NULL))
@@ -67,6 +68,7 @@ static OFCondition writeFile(STD_NAMESPACE ostream &out,
         {
             DcmJsonFormatPretty fmt(printMetaInfo);
             fmt.setJsonExtensionEnabled(encode_extended);
+            fmt.setJsonNumStringPolicy(opt_ns_policy);
             if (readMode == ERM_dataset)
                result = dset->writeJsonExt(out, fmt, OFTrue, OFTrue);
                else result = dfile->writeJson(out, fmt);
@@ -75,6 +77,7 @@ static OFCondition writeFile(STD_NAMESPACE ostream &out,
         {
             DcmJsonFormatCompact fmt(printMetaInfo);
             fmt.setJsonExtensionEnabled(encode_extended);
+            fmt.setJsonNumStringPolicy(opt_ns_policy);
             if (readMode == ERM_dataset)
                result = dset->writeJsonExt(out, fmt, OFTrue, OFTrue);
                else result = dfile->writeJson(out, fmt);
@@ -91,6 +94,8 @@ int main(int argc, char *argv[])
     OFBool opt_format = OFTrue;
     OFBool opt_addMetaInformation = OFFalse;
     OFBool opt_encode_extended = OFFalse;
+    DcmJsonFormat::NumStringPolicy opt_ns_policy = DcmJsonFormat::NSP_auto;
+
     E_FileReadMode opt_readMode = ERM_autoDetect;
     E_TransferSyntax opt_ixfer = EXS_Unknown;
     OFString optStr;
@@ -100,7 +105,7 @@ int main(int argc, char *argv[])
     cmd.setOptionColumns(LONGCOL, SHORTCOL);
     cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
 
-    cmd.addParam("dcmfile-in",   "DICOM input filename to be converted", OFCmdParam::PM_Mandatory);
+    cmd.addParam("dcmfile-in",   "DICOM input filename to be converted\n(\"-\" for stdin)", OFCmdParam::PM_Mandatory);
     cmd.addParam("jsonfile-out", "JSON output filename (default: stdout)", OFCmdParam::PM_Optional);
 
     cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);
@@ -124,6 +129,10 @@ int main(int argc, char *argv[])
       cmd.addSubGroup("encoding of infinity and not-a-number:");
         cmd.addOption("--encode-strict",      "-es", "report error for 'inf' and 'nan' (default)");
         cmd.addOption("--encode-extended",    "-ee", "permit 'inf' and 'nan' in JSON numbers");
+      cmd.addSubGroup("encoding of IS and DS (integer/decimal string) elements:");
+        cmd.addOption("--is-ds-auto",         "-ia", "encode as number if valid, as string\notherwise (default)");
+        cmd.addOption("--is-ds-num",          "-in", "always encode as number, fail if invalid");
+        cmd.addOption("--is-ds-string",       "-is", "always encode as string");
 
     cmd.addGroup("output options:");
       cmd.addSubGroup("output format:");
@@ -197,6 +206,15 @@ int main(int argc, char *argv[])
             opt_encode_extended = OFTrue;
         cmd.endOptionBlock();
 
+        cmd.beginOptionBlock();
+        if (cmd.findOption("--is-ds-auto"))
+            opt_ns_policy = DcmJsonFormat::NSP_auto;
+        if (cmd.findOption("--is-ds-num"))
+            opt_ns_policy = DcmJsonFormat::NSP_always_number;
+        if (cmd.findOption("--is-ds-string"))
+            opt_ns_policy = DcmJsonFormat::NSP_always_string;
+        cmd.endOptionBlock();
+
         /* format options */
         cmd.beginOptionBlock();
         if (cmd.findOption("--formatted-code"))
@@ -239,8 +257,24 @@ int main(int argc, char *argv[])
             OFString csetString;
             if (dset->findAndGetOFStringArray(DCM_SpecificCharacterSet, csetString).good())
             {
-                if (csetString.compare("ISO_IR 192") != 0 && csetString.compare("ISO_IR 6") != 0)
+                if (csetString.compare("ISO_IR 6") == 0)
                 {
+                    /* SpecificCharacterSet indicates ASCII without extended characters.
+                     * If this is true, no conversion is necessary. Check for extended characters.
+                     */
+                    if (dset->containsExtendedCharacters(OFFalse /*checkAllStrings*/))
+                    {
+                        OFLOG_FATAL(dcm2jsonLogger, "dataset contains extended characters but SpecificCharacterSet (0008,0005) is 'ISO_IR 6'");
+                        result = EXITCODE_CANNOT_CONVERT_TO_UNICODE;
+                    }
+                }
+                else if (csetString.compare("ISO_IR 192") == 0)
+                {
+                    /* DICOM dataset is already in UTF-8, no conversion necessary */
+                }
+                else
+                {
+                    /* we have a character set other than ASCII or UTF-8. Perform conversion. */
 #ifdef DCMTK_ENABLE_CHARSET_CONVERSION
                     /* convert all DICOM strings to UTF-8 */
                     OFLOG_INFO(dcm2jsonLogger, "converting all element values that are affected by SpecificCharacterSet (0008,0005) to UTF-8");
@@ -256,6 +290,16 @@ int main(int argc, char *argv[])
 #endif
                 }
             }
+            else
+            {
+              /* SpecificCharacterSet not present */
+              if (dset->containsExtendedCharacters(OFFalse /*checkAllStrings*/))
+              {
+                  OFLOG_FATAL(dcm2jsonLogger, "dataset contains extended characters but no SpecificCharacterSet (0008,0005)");
+                  result = EXITCODE_CANNOT_CONVERT_TO_UNICODE;
+              }
+            }
+
             if (result == 0)
             {
                 /* if second parameter is present, it is treated as the output filename ("stdout" otherwise) */
@@ -267,7 +311,7 @@ int main(int argc, char *argv[])
                     if (stream.good())
                     {
                         /* write content in JSON format to file */
-                        status = writeFile(stream, ifname, &dfile, opt_readMode, opt_format, opt_addMetaInformation, opt_encode_extended);
+                        status = writeFile(stream, ifname, &dfile, opt_readMode, opt_format, opt_addMetaInformation, opt_encode_extended, opt_ns_policy);
                         if (status.bad())
                         {
                             OFLOG_FATAL(dcm2jsonLogger, status.text() << ": " << ifname);
@@ -280,7 +324,7 @@ int main(int argc, char *argv[])
                 else
                 {
                     /* write content in JSON format to standard output */
-                    status = writeFile(COUT, ifname, &dfile, opt_readMode, opt_format, opt_addMetaInformation, opt_encode_extended);
+                    status = writeFile(COUT, ifname, &dfile, opt_readMode, opt_format, opt_addMetaInformation, opt_encode_extended, opt_ns_policy);
                     if (status.bad())
                     {
                         OFLOG_FATAL(dcm2jsonLogger, status.text() << ": " << ifname);

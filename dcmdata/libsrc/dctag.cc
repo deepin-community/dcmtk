@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2018, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -26,11 +26,6 @@
 #include "dcmtk/dcmdata/dcdicent.h"
 #include "dcmtk/ofstd/ofstd.h"
 
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
-
-
 DcmTag::DcmTag()
   : vr(EVR_UNKNOWN),
     tagName(NULL),
@@ -38,6 +33,7 @@ DcmTag::DcmTag()
     errorFlag(EC_InvalidTag)
 {
 }
+
 
 DcmTag::DcmTag(const DcmTagKey& akey, const char *privCreator)
   : DcmTagKey(akey),
@@ -51,6 +47,7 @@ DcmTag::DcmTag(const DcmTagKey& akey, const char *privCreator)
     lookupVRinDictionary();
 }
 
+
 DcmTag::DcmTag(Uint16 g, Uint16 e, const char *privCreator)
   : DcmTagKey(g, e),
     vr(EVR_UNKNOWN),
@@ -63,6 +60,7 @@ DcmTag::DcmTag(Uint16 g, Uint16 e, const char *privCreator)
     lookupVRinDictionary();
 }
 
+
 DcmTag::DcmTag(const DcmTagKey& akey, const DcmVR& avr)
   : DcmTagKey(akey),
     vr(avr),
@@ -71,6 +69,7 @@ DcmTag::DcmTag(const DcmTagKey& akey, const DcmVR& avr)
     errorFlag(EC_Normal)
 {
 }
+
 
 DcmTag::DcmTag(Uint16 g, Uint16 e, const DcmVR& avr)
   : DcmTagKey(g, e),
@@ -81,9 +80,22 @@ DcmTag::DcmTag(Uint16 g, Uint16 e, const DcmVR& avr)
 {
 }
 
+
 DcmTag::DcmTag(const DcmTag& tag)
   : DcmTagKey(tag),
     vr(tag.vr),
+    tagName(NULL),
+    privateCreator(NULL),
+    errorFlag(tag.errorFlag)
+{
+    updateTagName(tag.tagName);
+    updatePrivateCreator(tag.privateCreator);
+}
+
+
+DcmTag::DcmTag(const DcmTag& tag, const DcmVR& avr)
+  : DcmTagKey(tag),
+    vr(avr),
     tagName(NULL),
     privateCreator(NULL),
     errorFlag(tag.errorFlag)
@@ -119,7 +131,42 @@ DcmTag& DcmTag::operator=(const DcmTag& tag)
     return *this;
 }
 
+
 // ********************************
+
+
+OFBool DcmTag::operator==(const DcmTag& tag) const
+{
+    OFBool result = DcmTagKey::operator==(tag);
+    if (result)
+    {
+         // check whether private creator identifiers are identical
+        if ((privateCreator != NULL) && (tag.getPrivateCreator() != NULL))
+            result = (strcmp(privateCreator, tag.getPrivateCreator()) == 0);
+        else if (privateCreator != tag.getPrivateCreator())
+            result = OFFalse;
+    }
+    return result;
+}
+
+
+OFBool DcmTag::operator!=(const DcmTag& tag) const
+{
+    OFBool result = DcmTagKey::operator!=(tag);
+    if (!result)
+    {
+         // check whether private creator identifiers are different
+        if ((privateCreator != NULL) && (tag.getPrivateCreator() != NULL))
+            result = (strcmp(privateCreator, tag.getPrivateCreator()) != 0);
+        else if (privateCreator != tag.getPrivateCreator())
+            result = OFTrue;
+    }
+    return result;
+}
+
+
+// ********************************
+
 
 void DcmTag::lookupVRinDictionary()
 {
@@ -132,6 +179,7 @@ void DcmTag::lookupVRinDictionary()
     }
     dcmDataDict.rdunlock();
 }
+
 
 // ********************************
 
@@ -170,6 +218,7 @@ const char *DcmTag::getTagName()
     return DcmTag_ERROR_TagName;
 }
 
+
 OFBool DcmTag::isSignable() const
 {
     OFBool result = isSignableTag();
@@ -177,6 +226,7 @@ OFBool DcmTag::isSignable() const
         result = !isUnknownVR();
     return result;
 }
+
 
 OFBool DcmTag::isUnknownVR() const
 {
@@ -235,14 +285,15 @@ const char* DcmTag::getPrivateCreator() const
     return privateCreator;
 }
 
+
 void DcmTag::setPrivateCreator(const char *privCreator)
 {
-    // a new private creator code probably changes the name
-    // of the tag. Enforce new dictionary lookup the next time
-    // getTagName() is called.
+    // a new private creator identifier probably changes the name of the tag.
+    // Enforce new dictionary lookup the next time getTagName() is called.
     updateTagName(NULL);
     updatePrivateCreator(privCreator);
 }
+
 
 void DcmTag::updateTagName(const char *c)
 {
@@ -256,6 +307,7 @@ void DcmTag::updateTagName(const char *c)
     } else
         tagName = NULL;
 }
+
 
 void DcmTag::updatePrivateCreator(const char *c)
 {

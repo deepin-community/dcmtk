@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2019, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -22,19 +22,17 @@
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 
-#include "dcmtk/ofstd/ofstd.h"
 #include "dcmtk/dcmdata/dcdict.h"
-#include "dcmtk/ofstd/ofdefine.h"
 #include "dcmtk/dcmdata/dcdicent.h"
 #include "dcmtk/dcmdata/dctypes.h"
+#include "dcmtk/ofstd/ofdefine.h"
 #include "dcmtk/ofstd/ofstd.h"
 #include "dcmtk/ofstd/offile.h"
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CCTYPE
-#include "dcmtk/ofstd/ofstdinc.h"
+#ifdef HAVE_WINDOWS_H
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
 /*
 ** The separator character between fields in the data dictionary file(s)
@@ -45,6 +43,7 @@
 ** Comment character for the data dictionary file(s)
 */
 #define DCM_DICT_COMMENT_CHAR '#'
+
 
 /*
 ** THE Global DICOM Data Dictionary
@@ -116,15 +115,6 @@ DcmDataDictionary::DcmDataDictionary(OFBool loadBuiltin, OFBool loadExternal)
     skeletonCount(0),
     dictionaryLoaded(OFFalse)
 {
-    /* Make sure any DCMDICTPATH dictionary is loaded even if loading
-     * of external (default) dictionary is not enabled.
-     */
-    if (!loadExternal)
-    {
-        const char* env = getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
-        if ((env != NULL) && (strlen(env) != 0))
-            loadExternal = OFTrue;
-    }
     reloadDictionaries(loadBuiltin, loadExternal);
 }
 
@@ -152,7 +142,7 @@ stripWhitespace(char* s)
     unsigned char *t;
     unsigned char *p;
     t=p=OFreinterpret_cast(unsigned char *, s);
-    while ((c = *t++)) if (!isspace(c)) *p++ = c;
+    while ((c = *t++) != '\0') if (!isspace(c)) *p++ = c;
     *p = '\0';
   }
 }
@@ -180,7 +170,7 @@ stripLeadingWhitespace(char* s)
     unsigned char *p;
     t=p=OFreinterpret_cast(unsigned char *, s);
     while (isspace(*t)) t++;
-    while ((c = *t++)) *p++ = c;
+    while ((c = *t++) != '\0') *p++ = c;
     *p = '\0';
   }
 }
@@ -370,7 +360,7 @@ parseWholeTagField(char* s, DcmTagKey& key,
 
     if (pi > 0)
     {
-      // copy private creator name
+      // copy private creator identifier
       size_t buflen = strlen(pc) + 1;
       privCreator = new char[buflen]; // deleted by caller
       if (privCreator) OFStandard::strlcpy(privCreator, pc, buflen);
@@ -602,15 +592,29 @@ DcmDataDictionary::loadExternalDictionaries()
     const char* env = NULL;
     size_t len;
     int sepCnt = 0;
-    OFBool msgIfDictAbsent = OFTrue;
     OFBool loadFailed = OFFalse;
 
+    /* if DCMDICTPATH environment variable should be considered, read it */
+#ifdef DCM_DICT_USE_DCMDICTPATH
     env = getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
+#endif
+    /* if DCMDICTPATH environment variable is not set or empty,
+     * and reading of external dictionary is generally permitted,
+     * try to read dictionary from default path
+     */
     if ((env == NULL) || (strlen(env) == 0)) {
+#if DCM_DICT_DEFAULT == DCM_DICT_DEFAULT_USE_EXTERNAL
         env = DCM_DICT_DEFAULT_PATH;
-        msgIfDictAbsent = OFFalse;
+#endif
     }
 
+#ifdef HAVE_WINDOWS_H
+    char buf[MAX_PATH+1];
+#endif
+
+    /* if any mechanism for external dictionary (environment or default external)
+     * is actually provided it, parse env and load all dictionaries specified therein.
+     */
     if ((env != NULL) && (strlen(env) != 0)) {
         len = strlen(env);
         for (size_t i = 0; i < len; ++i) {
@@ -620,7 +624,12 @@ DcmDataDictionary::loadExternalDictionaries()
         }
 
         if (sepCnt == 0) {
-            if (!loadDictionary(env, msgIfDictAbsent)) {
+#ifdef HAVE_WINDOWS_H
+            memset(buf, 0, sizeof(buf));
+            (void) ExpandEnvironmentStringsA(env, buf, sizeof(buf));
+            env = buf;
+#endif
+            if (!loadDictionary(env, OFTrue)) {
                 return OFFalse;
             }
         } else {
@@ -633,9 +642,18 @@ DcmDataDictionary::loadExternalDictionaries()
 
             for (int ii = 0; ii < ndicts; ii++) {
                 if ((dictArray[ii] != NULL) && (strlen(dictArray[ii]) > 0)) {
-                    if (!loadDictionary(dictArray[ii], msgIfDictAbsent)) {
+#ifdef HAVE_WINDOWS_H
+                    memset(buf, 0, sizeof(buf));
+                    (void) ExpandEnvironmentStringsA(dictArray[ii], buf, sizeof(buf));
+                    env = buf;
+                    if (!loadDictionary(buf, OFTrue)) {
                         loadFailed = OFTrue;
                     }
+#else
+                    if (!loadDictionary(dictArray[ii], OFTrue)) {
+                        loadFailed = OFTrue;
+                    }
+#endif
                 }
                 free(dictArray[ii]);
             }
@@ -818,11 +836,7 @@ void GlobalDcmDataDictionary::createDataDict()
   dataDictLock.wrlock();
 #endif
 
-#ifdef DONT_LOAD_EXTERNAL_DICTIONARIES
-    #error "The macro DONT_LOAD_EXTERNAL_DICTIONARIES has been defined in older versions of DCMTK. Undefine ENABLE_EXTERNAL_DICTIONARY instead."
-#endif
-
-#ifdef ENABLE_EXTERNAL_DICTIONARY
+#if (DCM_DICT_DEFAULT == DCM_DICT_DEFAULT_USE_EXTERNAL) || defined(DCM_DICT_USE_DCMDICTPATH)
   const OFBool loadExternal = OFTrue;
 #else
   const OFBool loadExternal = OFFalse;

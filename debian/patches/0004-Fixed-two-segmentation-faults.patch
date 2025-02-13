@@ -1,0 +1,91 @@
+From c78e434c0c5f9d932874f0b17a8b4ce305ca01f5 Mon Sep 17 00:00:00 2001
+From: Marco Eichelberg <dicom@offis.de>
+Date: Wed, 13 Mar 2024 17:15:58 +0100
+Subject: [PATCH] Fixed two segmentation faults.
+
+Fixed two segmentations faults that could occur while processing an
+invalid incoming DIMSE message due to insufficient error handling
+causing a de-referenced NULL pointer.
+
+Thanks to Nils Bars <nils.bars@rub.de> for the bug report and sample files.
+
+This closes DCMTK issue #1114.
+---
+ dcmdata/libsrc/dcelem.cc |  9 ++++++++-
+ dcmnet/libsrc/dimcmd.cc  | 33 ++++++++++++++++++---------------
+ 2 files changed, 26 insertions(+), 16 deletions(-)
+
+--- dcmtk.orig/dcmdata/libsrc/dcelem.cc
++++ dcmtk/dcmdata/libsrc/dcelem.cc
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2023, OFFIS e.V.
++ *  Copyright (C) 1994-2024, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -717,6 +717,13 @@
+             if (isStreamNew)
+                 delete readStream;
+         }
++        else
++        {
++            errorFlag = EC_InvalidStream; // incomplete dataset read from stream
++            DCMDATA_ERROR("DcmElement: " << getTagName() << " " << getTag()
++                << " larger (" << getLengthField() << ") than remaining bytes ("
++                << getTransferredBytes() << ") in file, premature end of stream");
++        }
+     }
+     /* return result value */
+     return errorFlag;
+--- dcmtk.orig/dcmnet/libsrc/dimcmd.cc
++++ dcmtk/dcmnet/libsrc/dimcmd.cc
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2022, OFFIS e.V.
++ *  Copyright (C) 1994-2024, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were partly developed by
+@@ -207,22 +207,25 @@
+             return parseErrorWithMsg("dimcmd:getString: string too small", t);
+         } else {
+             ec =  elem->getString(aString);
+-            strncpy(s, aString, maxlen);
+-            if (spacePadded)
++            if (ec.good())
+             {
+-                /* before we remove leading and tailing spaces we want to know
+-                 * whether the string is actually space padded. Required to communicate
+-                 * with dumb peers which send space padded UIDs and fail if they
+-                 * receive correct UIDs back.
+-                 *
+-                 * This test can only detect space padded strings if
+-                 * dcmEnableAutomaticInputDataCorrection is false; otherwise the padding
+-                 * has already been removed by dcmdata at this stage.
+-                 */
+-                size_t s_len = strlen(s);
+-                if ((s_len > 0)&&(s[s_len-1] == ' ')) *spacePadded = OFTrue; else *spacePadded = OFFalse;
++                strncpy(s, aString, maxlen);
++                if (spacePadded)
++                {
++                    /* before we remove leading and tailing spaces we want to know
++                     * whether the string is actually space padded. Required to communicate
++                     * with dumb peers which send space padded UIDs and fail if they
++                     * receive correct UIDs back.
++                     *
++                     * This test can only detect space padded strings if
++                     * dcmEnableAutomaticInputDataCorrection is false; otherwise the padding
++                     * has already been removed by dcmdata at this stage.
++                     */
++                    size_t s_len = strlen(s);
++                    if ((s_len > 0)&&(s[s_len-1] == ' ')) *spacePadded = OFTrue; else *spacePadded = OFFalse;
++                }
++                DU_stripLeadingAndTrailingSpaces(s);
+             }
+-            DU_stripLeadingAndTrailingSpaces(s);
+         }
+     }
+     return (ec.good())? ec : DIMSE_PARSEFAILED;

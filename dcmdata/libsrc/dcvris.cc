@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2020, OFFIS e.V.
+ *  Copyright (C) 1994-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -24,11 +24,6 @@
 #include "dcmtk/dcmdata/dcvris.h"
 #include "dcmtk/dcmdata/dcjson.h"
 #include "dcmtk/ofstd/ofstring.h"
-
-#define INCLUDE_CSTDIO
-#define INCLUDE_CINTTYPES
-#include "dcmtk/ofstd/ofstdinc.h"
-
 
 #define MAX_IS_LENGTH 12
 
@@ -154,6 +149,7 @@ OFCondition DcmIntegerString::writeJson(STD_NAMESPACE ostream &out,
 {
     /* always write JSON Opener */
     writeJsonOpener(out, format);
+    OFBool isValid;
 
     if (!isEmpty())
     {
@@ -175,22 +171,45 @@ OFCondition DcmIntegerString::writeJson(STD_NAMESPACE ostream &out,
                 if (status.bad())
                     return status;
                 format.printValuePrefix(out);
-                // if the value is a proper number, write as JSON number,
-                // otherwise write as JSON string.
-                if (checkStringValue(value, vmstring).good())
-                    DcmJsonFormat::printNumberInteger(out, value);
+
+                isValid = checkStringValue(value, vmstring).good();
+                switch (format.getJsonNumStringPolicy())
+                {
+                  case DcmJsonFormat::NSP_auto:
+                    if (isValid) DcmJsonFormat::printNumberInteger(out, value);
                     else DcmJsonFormat::printValueString(out, value);
+                    break;
+                  case DcmJsonFormat::NSP_always_number:
+                    if (isValid) DcmJsonFormat::printNumberInteger(out, value);
+                    else return EC_CannotWriteStringAsJsonNumber;
+                    break;
+                  case DcmJsonFormat::NSP_always_string:
+                    DcmJsonFormat::printValueString(out, value);
+                    break;
+                }
+
                 for (unsigned long valNo = 1; valNo < vm; ++valNo)
                 {
                     status = getOFString(value, valNo);
                     if (status.bad())
                         return status;
                     format.printNextArrayElementPrefix(out);
-                    // if the value is a proper number, write as JSON number,
-                    // otherwise write as JSON string.
-                    if (checkStringValue(value, vmstring).good())
-                        DcmJsonFormat::printNumberInteger(out, value);
+
+                    isValid = checkStringValue(value, vmstring).good();
+                    switch (format.getJsonNumStringPolicy())
+                    {
+                      case DcmJsonFormat::NSP_auto:
+                        if (isValid) DcmJsonFormat::printNumberInteger(out, value);
                         else DcmJsonFormat::printValueString(out, value);
+                        break;
+                      case DcmJsonFormat::NSP_always_number:
+                        if (isValid) DcmJsonFormat::printNumberInteger(out, value);
+                        else return EC_CannotWriteStringAsJsonNumber;
+                        break;
+                      case DcmJsonFormat::NSP_always_string:
+                        DcmJsonFormat::printValueString(out, value);
+                        break;
+                    }
                 }
                 format.printValueSuffix(out);
             }

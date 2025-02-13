@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2018-2019, OFFIS e.V.
+ *  Copyright (C) 2018-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -27,11 +27,11 @@
 
 #ifdef WITH_OPENSSL
 
+#include "dcmtk/ofstd/ofcond.h"       /* for class OFCondition */
 #include "dcmtk/ofstd/ofstring.h"     /* for class OFString */
 #include "dcmtk/ofstd/ofstream.h"     /* for class ostream */
 #include "dcmtk/ofstd/ofvector.h"     /* for class OFVector */
 #include "dcmtk/dcmtls/tlsdefin.h"    /* for DCMTK_DCMTLS_EXPORT */
-#include "dcmtk/dcmnet/dcmlayer.h"    /* for DcmTransportLayerStatus */
 
 // include this file in doxygen documentation
 
@@ -51,12 +51,14 @@ enum DcmTLSSecurityProfile
 
   /** DICOM Basic TLS Secure Transport Connection Profile (retired),
     * using the ciphersuite TLS_RSA_WITH_3DES_EDE_CBC_SHA and TLS 1.0 or newer.
+    * This profile is retired.
     */
   TSP_Profile_Basic,
 
   /** DICOM AES TLS Secure Transport Connection Profile (retired),
     * using the ciphersuites TLS_RSA_WITH_AES_128_CBC_SHA and TLS_RSA_WITH_3DES_EDE_CBC_SHA,
     * and TLS 1.0 or newer.
+    * This profile is retired.
     */
   TSP_Profile_AES,
 
@@ -69,6 +71,7 @@ enum DcmTLSSecurityProfile
    *  backward compatibility with older implementations while offering much
    *  better security when used with implementations also supporting one of the
    *  BCP 195 profiles.
+    * This profile is retired.
    */
   TSP_Profile_BCP195,
 
@@ -79,6 +82,7 @@ enum DcmTLSSecurityProfile
    *  TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384.
    *  It does not provide backwards compatibility with the older Basic and AES profiles,
    *  and thus guarantees the higher security level of BCP 195.
+    * This profile is retired.
    */
   TSP_Profile_BCP195_ND,
 
@@ -92,8 +96,24 @@ enum DcmTLSSecurityProfile
    *  This profile requires DHE keys of at least 2048 bits and ECDHE keys of at least 256 bits.
    *  It does not provide backwards compatibility with the older Basic and AES profiles,
    *  and thus guarantees the higher security level of BCP 195.
+    * This profile is retired.
    */
   TSP_Profile_BCP195_Extended,
+
+  /** DICOM BCP 195 RFC 8996 TLS Profile, based on RFC 8996 and RFC 9325.
+   *  This profile only negotiates TLS 1.2 or newer, and will not fall back to
+   *  previous TLS versions. It provides the higher security level offered by the
+   *  2021 revised edition of BCP 195.
+   */
+  TSP_Profile_BCP_195_RFC_8996,
+
+  /** DICOM Modified BCP 195 RFC 8996 TLS Profile, based on RFC 8996 and RFC 9325.
+   *  This profile only negotiates TLS 1.2 or newer, and will not fall back to
+   *  previous TLS versions. It provides the higher security level offered by the
+   *  2021 revised edition of BCP 195 and implements various additional restrictions
+   *  defined in the DICOM Standard.
+   */
+  TSP_Profile_BCP_195_RFC_8996_Modified,
 
   /** IHE ATNA Profile for Unencrypted In-house Communication (retired).
    * This profile uses the ciphersuite SSL_RSA_WITH_NULL_SHA and TLS 1.0 or newer.
@@ -118,7 +138,9 @@ enum DcmTLSCipherProtocolVersion
   /// Secure Socket Layer (SSL) version 3 or newer
   TPV_SSLv3,
   /// Transport Layer Security (TLS) version 1.2 or newer
-  TPV_TLSv12
+  TPV_TLSv12,
+  /// Transport Layer Security (TLS) version 1.3
+  TPV_TLSv13
 };
 
 
@@ -132,7 +154,7 @@ enum DcmTLSCipherKeyExchange
   /// Static RSA key exchange
   TKE_RSA,
 
-  /// Elliptic Curve Diffie–Hellman
+  /// Elliptic Curve Diffie-Hellman
   TKE_ECDH,
 
   /// Fixed ECDH with ECDSA-signed certificates
@@ -141,9 +163,11 @@ enum DcmTLSCipherKeyExchange
   /// Fixed ECDH with RSA signatures
   TKE_ECDH_RSA,
 
-  /// Diffie–Hellman key exchange
-  TKE_DH
+  /// Diffie-Hellman key exchange
+  TKE_DH,
 
+  /// TLS 1.3 key exchange (always based on Diffie-Hellman)
+  TKE_TLSv13
 };
 
 
@@ -157,14 +181,18 @@ enum DcmTLSCipherAuthentication
   /// Digital Signature Standard
   TCA_DSS,
 
-  /// Elliptic Curve Diffie–Hellman
+  /// Elliptic Curve Diffie-Hellman
   TCA_ECDH,
 
   /// Elliptic Curve Digital Signature Algorithm
   TCA_ECDSA,
 
   /// RSA
-  TCA_RSA
+  TCA_RSA,
+
+  /// TLS 1.3 authentication, supports ECDH and RSA
+  TCA_TLSv13
+
 };
 
 
@@ -212,7 +240,52 @@ enum DcmTLSCipherMAC
   TCM_SHA384,
 
   /// Authenticated Encryption with Associated Data (AEAD)
-  TCM_AEAD
+  TCM_AEAD,
+
+  /// Cipher Block Chaining Message Authentication Code (CBC-MAC)
+  TCM_CBC_MAC
+
+};
+
+/** This enum describes the block cipher mode of operation used in a certain
+ *  TLS ciphersuite.
+ *  @remark this enum is only available if DCMTK is compiled with
+ *  OpenSSL support enabled.
+ */
+enum DcmTLSCipherMode
+{
+  /// Not applicable, e.g. stream cipher
+  TKM_NA,
+
+  /// Cipher block chaining mode
+  TKM_CBC,
+
+  /// Galois/Counter mode
+  TKM_GCM,
+
+  /// Counter and CBC-MAC Mode
+  TKM_CCM
+
+};
+
+
+/** This enum describes the verification approach
+ *  for certificate revocation lists (CRL)
+ *  @remark this enum is only available if DCMTK is compiled with
+ *  OpenSSL support enabled.
+ */
+enum DcmTLSCRLVerification
+{
+  /// Certificates are not checked against a CRL
+  TCR_noCRL,
+
+  /// Check chain leaf certificate against its CRL.
+  /// An error occurs if a suitable CRL cannot be found.
+  TCR_checkLeafCRL,
+
+  /// Check the entire certificate chain against their CRLs.
+  /// An error occurs if any required CRL cannot be found.
+  TCR_checkAllCRL
 
 };
 
@@ -241,9 +314,9 @@ public:
   /** replace the current list of ciphersuites by the list of ciphersuites
    *  for the given profile.
    *  @param profile TLS Security Profile
-   *  @return TCS_ok if successful, an error code otherwise
+   *  @return EC_Normal if successful, an error code otherwise
    */
-  DcmTransportLayerStatus setTLSProfile(DcmTLSSecurityProfile profile);
+  OFCondition setTLSProfile(DcmTLSSecurityProfile profile);
 
   /** return the currently selected TLS profile
    *  @return currently selected TLS profile
@@ -258,22 +331,31 @@ public:
    */
   void clearTLSProfile();
 
-  /** adds a ciphersuite to the list of ciphersuites for TLS negotiation.
+  /** adds a TLS 1.0-1.2 ciphersuite to the list of ciphersuites for TLS negotiation.
    *  It is the responsibility of the user to ensure that the added ciphersuite
    *  does not break the rules of the selected profile. Use with care!
    *  @param suite TLS ciphersuite name, in the official TLS name form.
-   *  @return TCS_ok if successful, an error code otherwise
+   *  @return EC_Normal if successful, an error code otherwise
    */
-  DcmTransportLayerStatus addCipherSuite(const char *suite);
+  OFCondition addCipherSuite(const char *suite);
 
   /** returns a string in OpenSSL syntax that contains the currently defined
-   *  list of TLS ciphersuites.
+   *  list of TLS 1.0-1.2 ciphersuites.
    *  @param cslist The list of ciphersuites in OpenSSL syntax is written to this string.
    *  @param isServer true if the list of cipher suites is intended for
    *    a TLS server. In this case, the list of ciphersuites will be reordered
    *    from strongest to weakest, as recommended by BCP 195.
    */
   void getListOfCipherSuitesForOpenSSL(OFString& cslist, OFBool isServer) const;
+
+  /** returns a string in OpenSSL syntax that contains the currently defined
+   *  list of TLS 1.3 ciphersuites.
+   *  @param cslist The list of ciphersuites in OpenSSL syntax is written to this string.
+   *  @param isServer true if the list of cipher suites is intended for
+   *    a TLS server. In this case, the list of ciphersuites will be reordered
+   *    from strongest to weakest, as recommended by BCP 195.
+   */
+  void getListOfTLS13CipherSuitesForOpenSSL(OFString& cslist, OFBool isServer) const;
 
   /** returns the set of flags that need to be activated in OpenSSL
    *  depending on the selected TLS profile.
@@ -302,84 +384,174 @@ public:
    */
   OFBool isTLS13Enabled() const;
 
-  /** print a list of supported ciphersuites to the given output stream
+  /** print a list of supported TLS 1.0-1.2 ciphersuites to the given output stream
    *  @param os output stream
    */
   void printSupportedCiphersuites(STD_NAMESPACE ostream& os) const;
 
-  /** returns the number of known ciphersuites.
+  /** print a list of supported TLS 1.3 ciphersuites to the given output stream
+   *  @param os output stream
+   */
+  void printSupportedTLS13Ciphersuites(STD_NAMESPACE ostream& os) const;
+
+  /** returns the number of known TLS 1.0-1.2 ciphersuites.
    *  @return number of known ciphersuites
    */
   static size_t getNumberOfCipherSuites();
 
-  /** looks up the index of the given ciphersuite by name
+  /** returns the number of known TLS 1.3 ciphersuites.
+   *  @return number of known ciphersuites
+   */
+  static size_t getNumberOfTLS13CipherSuites();
+
+  /** looks up the index of the given TLS 1.0-1.2 ciphersuite by name
    *  @param tlsCipherSuiteName ciphersuite name in RFC 2246 form
    *  @returns index into list of ciphersuites, DcmTLSCiphersuiteHandler::unknownCipherSuiteIndex if ciphersuite unknown
    */
   static size_t lookupCiphersuite(const char *tlsCipherSuiteName);
 
-  /** looks up the index of the given ciphersuite by OpenSSL name
-   *  @param tlsCipherSuiteName ciphersuite name in the form used by OpenSSL
+  /** looks up the index of the given TLS 1.3 ciphersuite by name
+   *  @param tlsCipherSuiteName ciphersuite name in RFC 2246 form
+   *  @returns index into list of ciphersuites, DcmTLSCiphersuiteHandler::unknownCipherSuiteIndex if ciphersuite unknown
+   */
+  static size_t lookupTLS13Ciphersuite(const char *tlsCipherSuiteName);
+
+  /** looks up the index of the given TLS 1.0-1.2 ciphersuite by OpenSSL name
+   *  @param opensslCipherSuiteName ciphersuite name in the form used by OpenSSL
    *  @returns index into list of ciphersuites, DcmTLSCiphersuiteHandler::unknownCipherSuiteIndex if ciphersuite unknown
    */
   static size_t lookupCiphersuiteByOpenSSLName(const char *opensslCipherSuiteName);
 
-  /** returns a ciphersuite name in RFC 2246 (TLS) form
+  /** looks up the index of the given TLS 1.3 ciphersuite by OpenSSL name
+   *  @param opensslCipherSuiteName ciphersuite name in the form used by OpenSSL
+   *  @returns index into list of ciphersuites, DcmTLSCiphersuiteHandler::unknownCipherSuiteIndex if ciphersuite unknown
+   */
+  static size_t lookupTLS13CiphersuiteByOpenSSLName(const char *opensslCipherSuiteName);
+
+  /** returns a TLS 1.0-1.2 ciphersuite name in RFC 2246 (TLS) form
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return ciphersuite name
    */
   static const char *getTLSCipherSuiteName(size_t idx);
 
-  /** returns a ciphersuite name in OpenSSL form
+  /** returns a TLS 1.3 ciphersuite name in RFC 2246 (TLS) form
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return ciphersuite name
+   */
+  static const char *getTLS13CipherSuiteName(size_t idx);
+
+  /** returns a TLS 1.0-1.2 ciphersuite name in OpenSSL form
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return ciphersuite name
    */
   static const char *getOpenSSLCipherSuiteName(size_t idx);
 
-  /** returns the minimum SSL/TLS version required for the ciphersuite with the given index
+  /** returns a TLS 1.3 ciphersuite name in OpenSSL form
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return ciphersuite name
+   */
+  static const char *getOpenSSLTLS13CipherSuiteName(size_t idx);
+
+  /** returns the minimum SSL/TLS version required for the TLS 1.0-1.2 ciphersuite with the given index
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return minimum SSL/TLS version required
    */
   static DcmTLSCipherProtocolVersion getCipherSuiteProtocolVersion(size_t idx);
 
-  /** returns the key exchange protocol used by the ciphersuite with the given index
+  /** returns the minimum SSL/TLS version required for the TLS 1.3 ciphersuite with the given index
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return minimum SSL/TLS version required
+   */
+  static DcmTLSCipherProtocolVersion getTLS13CipherSuiteProtocolVersion(size_t idx);
+
+  /** returns the key exchange protocol used by the TLS 1.0-1.2 ciphersuite with the given index
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return key exchange protocol
    */
   static DcmTLSCipherKeyExchange getCipherSuiteKeyExchange(size_t idx);
 
-  /** returns the authentication algorithm used by the ciphersuite with the given index
+  /** returns the key exchange protocol used by the TLS 1.3 ciphersuite with the given index
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return key exchange protocol
+   */
+  static DcmTLSCipherKeyExchange getTLS13CipherSuiteKeyExchange(size_t idx);
+
+  /** returns the authentication algorithm used by the TLS 1.0-1.2 ciphersuite with the given index
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return authentication algorithm
    */
   static DcmTLSCipherAuthentication getCipherSuiteAuthentication(size_t idx);
 
-  /** returns the encryption algorithm used by  the ciphersuite with the given index
+  /** returns the authentication algorithm used by the TLS 1.3 ciphersuite with the given index
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return authentication algorithm
+   */
+  static DcmTLSCipherAuthentication getTLS13CipherSuiteAuthentication(size_t idx);
+
+  /** returns the encryption algorithm used by the TLS 1.0-1.2 ciphersuite with the given index
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return minimum SSL/TLS version required
    */
   static DcmTLSCipherEncryption getCipherSuiteEncryption(size_t idx);
 
-  /** returns the message authentication code (MAC) algorithm used by  the ciphersuite with the given index
+  /** returns the encryption algorithm used by the TLS 1.3 ciphersuite with the given index
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return minimum SSL/TLS version required
+   */
+  static DcmTLSCipherEncryption getTLS13CipherSuiteEncryption(size_t idx);
+
+  /** returns the message authentication code (MAC) algorithm used by the TLS 1.0-1.2 ciphersuite with the given index
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return message authentication code (MAC) algorithm
    */
   static DcmTLSCipherMAC getCipherSuiteMAC(size_t idx);
 
-  /** returns the symmetric key size used by the ciphersuite with the given index
+  /** returns the message authentication code (MAC) algorithm used by the TLS 1.3 ciphersuite with the given index
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return message authentication code (MAC) algorithm
+   */
+  static DcmTLSCipherMAC getTLS13CipherSuiteMAC(size_t idx);
+
+  /** returns the mode of operation used by the TLS 1.0-1.2 ciphersuite with the given index
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return mode of operation for block ciphers, TKM_NA otherwise
+   */
+  static DcmTLSCipherMode getCipherSuiteMode(size_t idx);
+
+  /** returns the mode of operation used by the TLS 1.3 ciphersuite with the given index
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return mode of operation for block ciphers, TKM_NA otherwise
+   */
+  static DcmTLSCipherMode getTLS13CipherSuiteMode(size_t idx);
+
+  /** returns the symmetric key size used by the TLS 1.0-1.2 ciphersuite with the given index
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return symmetric key size, in bits
    */
   static size_t getCipherSuiteKeySize(size_t idx);
 
-  /** returns the effective symmetric key size (i.e. security level) of the ciphersuite with the given index.
+  /** returns the symmetric key size used by the TLS 1.3 ciphersuite with the given index
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return symmetric key size, in bits
+   */
+  static size_t getTLS13CipherSuiteKeySize(size_t idx);
+
+  /** returns the effective symmetric key size (i.e. security level) of the TLS 1.0-1.2 ciphersuite with the given index.
    *  BCP 195 (2015) recommends that no ciphersuites with an effective key size of less than 112 bits should be used anymore with TLS.
    *  @param idx index, must be < getNumberOfCipherSuites()
    *  @return effective symmetric key size, in bits
    */
   static size_t getCipherSuiteEffectiveKeySize(size_t idx);
 
+  /** returns the effective symmetric key size (i.e. security level) of the TLS 1.3 ciphersuite with the given index.
+   *  BCP 195 (2015) recommends that no ciphersuites with an effective key size of less than 112 bits should be used anymore with TLS.
+   *  @param idx index, must be < getNumberOfCipherSuites()
+   *  @return effective symmetric key size, in bits
+   */
+  static size_t getTLS13CipherSuiteEffectiveKeySize(size_t idx);
+
   /** look up the name of the given security profile
+   *  @param profile the given security profile
    *  @return name of security profile, never NULL.
    */
   static const char *lookupProfileName(DcmTLSSecurityProfile profile);
@@ -395,29 +567,38 @@ private:
   /// private undefined assignment operator
   DcmTLSCiphersuiteHandler& operator=(const DcmTLSCiphersuiteHandler&);
 
-  /** determine the set of ciphersuites that are supported both by DCMTK
+  /** determine the set of TLS 1.0-1.2 ciphersuites that are supported both by DCMTK
    *  and the OpenSSL library we are currently using
    */
   void determineSupportedCiphers();
 
-  /** add ciphersuite by name, print error if unsupported
+  /** add TLS 1.0-1.2 ciphersuite by name, print error if unsupported
    *  @param name ciphersuite name in RFC 2246 form
-   *  @return TCS_ok if successful, an error code otherwise
+   *  @return EC_Normal if successful, an error code otherwise
    */
-  DcmTransportLayerStatus addRequiredCipherSuite(const char *name);
+  OFCondition addRequiredCipherSuite(const char *name);
+
+  /** add TLS 1.3 ciphersuite by name, print error if unsupported
+   *  @param name ciphersuite name in RFC 2246 form
+   *  @return EC_Normal if successful, an error code otherwise
+   */
+  OFCondition addRequiredTLS13CipherSuite(const char *name);
 
   /** add 3DES ciphersuite, print warning if unsupported
    */
   void addOptional3DESCipherSuite();
 
-  /// current list of ciphersuites
+  /// current list of ciphersuites for TLS 1.0-1.2
   OFVector<size_t> ciphersuiteList;
+
+  /// current list of ciphersuites for TLS 1.3
+  OFVector<size_t> tls13ciphersuiteList;
 
   /// currently selected DICOM TLS security profile
   DcmTLSSecurityProfile currentProfile;
 
   /// indicator whether TLS 1.3 is enabled or disabled for the current profile
-   OFBool tls13_enabled;
+  OFBool tls13_enabled;
 
   /** an array of booleans indicating which ciphersuites known to DCMTK are
    *  actually supported by the OpenSSL library we are using.

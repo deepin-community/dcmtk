@@ -1,0 +1,44 @@
+From 8f6c9ba05eb146310a6325fb8ab18dfb14c1a291 Mon Sep 17 00:00:00 2001
+From: Joerg Riesmeier <dicom@jriesmeier.com>
+Date: Mon, 22 Nov 2021 18:54:35 +0100
+Subject: [PATCH] Replaced OFListIterator by OFListConstIterator.
+
+Replaced type of iterator variable to OFListConstIterator to avoid
+compiler errors reported by gcc when compiling DICOMscope with STL
+and C++14 support enabled.
+
+Thanks to GitHub user "malaterre" for the report and suggested fix.
+---
+ dcmsr/include/dcmtk/dcmsr/dsrtlist.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/dcmsr/include/dcmtk/dcmsr/dsrtlist.h b/dcmsr/include/dcmtk/dcmsr/dsrtlist.h
+index 5ec109aca..31759b851 100644
+--- a/dcmsr/include/dcmtk/dcmsr/dsrtlist.h
++++ b/dcmsr/include/dcmtk/dcmsr/dsrtlist.h
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 2000-2018, OFFIS e.V.
++ *  Copyright (C) 2000-2021, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -282,7 +282,7 @@ template<class T> class DSRListOfItems
+             ItemList.push_back(item);
+             result = EC_Normal;
+         } else {
+-            OFLIST_TYPENAME OFListIterator(T) iterator = ItemList.begin();
++            OFLIST_TYPENAME OFListConstIterator(T) iterator = ItemList.begin();
+             if (gotoItemPos(idx, iterator))
+             {
+                 ItemList.insert(iterator, 1, item);
+@@ -299,7 +299,7 @@ template<class T> class DSRListOfItems
+     OFCondition removeItem(const size_t idx)
+     {
+         OFCondition result = EC_IllegalParameter;
+-        OFLIST_TYPENAME OFListIterator(T) iterator = ItemList.begin();
++        OFLIST_TYPENAME OFListConstIterator(T) iterator = ItemList.begin();
+         if (gotoItemPos(idx, iterator))
+         {
+             ItemList.erase(iterator);

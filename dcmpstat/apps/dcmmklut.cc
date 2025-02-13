@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1998-2019, OFFIS e.V.
+ *  Copyright (C) 1998-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -37,12 +37,6 @@
 #include "dcmtk/ofstd/ofstream.h"
 #include "dcmtk/ofstd/ofstd.h"
 #include "dcmtk/ofstd/ofrand.h"
-
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CMATH
-#define INCLUDE_CCTYPE
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #ifdef WITH_ZLIB
 #include <zlib.h>        /* for zlibVersion() */
@@ -571,8 +565,8 @@ static OFCondition createLUT(const unsigned int numberOfBits,
         if (descriptor)
         {
             if (EC_Normal==result) result = descriptor->putUint16(numEntries16, 0);
-            if (EC_Normal==result) result = descriptor->putUint16((Uint16)firstMapped, 1);
-            if (EC_Normal==result) result = descriptor->putUint16(numberOfBits, 2);
+            if (EC_Normal==result) result = descriptor->putUint16(OFstatic_cast(Uint16, firstMapped), 1);
+            if (EC_Normal==result) result = descriptor->putUint16(OFstatic_cast(Uint16, numberOfBits), 2);
             if (EC_Normal==result) result = item.insert(descriptor, OFTrue /*replaceOld*/);
         } else
             return EC_MemoryExhausted;
@@ -581,7 +575,7 @@ static OFCondition createLUT(const unsigned int numberOfBits,
     unsigned long wordsToWrite = 0;
     if (byteAlign)
     {
-        // the array is now in little endian byte order. Swap to local byte order if neccessary.
+        // the array is now in little endian byte order. Swap to local byte order if necessary.
         swapIfNecessary(gLocalByteOrder, EBO_LittleEndian, (Uint8 *)data, numberOfEntries + 1, sizeof(Uint16));
         wordsToWrite = (numberOfEntries + 1) / 2;
     } else
@@ -680,7 +674,7 @@ int main(int argc, char *argv[])
     cmd.setOptionColumns(LONGCOL, SHORTCOL);
     cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
 
-    cmd.addParam("dcmimg-out",                   "DICOM output filename");
+    cmd.addParam("dcmimg-out",                   "DICOM output filename (\"-\" for stdout)");
 
     cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);
      cmd.addOption("--help",           "-h",     "print this help text and exit", OFCommandLine::AF_Exclusive);

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1999-2019, OFFIS e.V.
+ *  Copyright (C) 1999-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -307,7 +307,7 @@ static OFCondition addAllStoragePresentationContexts(T_ASC_Parameters *params, i
 
     for (int i=0; i<numberOfDcmLongSCUStorageSOPClassUIDs && cond.good(); i++) {
         cond = ASC_addPresentationContext(
-            params, pid, dcmLongSCUStorageSOPClassUIDs[i],
+            params, OFstatic_cast(T_ASC_PresentationContextID, pid), dcmLongSCUStorageSOPClassUIDs[i],
             transferSyntaxes, transferSyntaxCount);
         pid += 2;       /* only odd presentation context id's */
     }
@@ -577,8 +577,10 @@ int main(int argc, char *argv[])
       OFString profileName;
       const char *profileNamePtr = dvi.getTargetTLSProfile(opt_target);
       if (profileNamePtr) profileName = profileNamePtr;
-      DcmTLSSecurityProfile tlsProfile = TSP_Profile_BCP195;  // default
-      if (profileName == "BCP195") tlsProfile = TSP_Profile_BCP195;
+      DcmTLSSecurityProfile tlsProfile = TSP_Profile_BCP_195_RFC_8996;  // default
+      if (profileName == "BCP195-RFC8996") tlsProfile = TSP_Profile_BCP_195_RFC_8996;
+      else if (profileName == "BCP195-RFC8996-MOD") tlsProfile = TSP_Profile_BCP_195_RFC_8996_Modified;
+      else if (profileName == "BCP195") tlsProfile = TSP_Profile_BCP195;
       else if (profileName == "BCP195-ND") tlsProfile = TSP_Profile_BCP195_ND;
       else if (profileName == "BCP195-EX") tlsProfile = TSP_Profile_BCP195_Extended;
       else if (profileName == "AES") tlsProfile = TSP_Profile_AES;
@@ -589,20 +591,20 @@ int main(int argc, char *argv[])
         OFLOG_WARN(dcmpssndLogger, "unknown TLS profile '" << profileName << "', ignoring");
       }
 
-      if (TCS_ok != tLayer->setTLSProfile(tlsProfile))
+      if (tLayer->setTLSProfile(tlsProfile).bad())
       {
         OFLOG_FATAL(dcmpssndLogger, "unable to select the TLS security profile");
         return 1;
       }
 
       // activate cipher suites
-      if (TCS_ok != tLayer->activateCipherSuites())
+      if (tLayer->activateCipherSuites().bad())
       {
         OFLOG_FATAL(dcmpssndLogger, "unable to activate the selected list of TLS ciphersuites");
         return 1;
       }
 
-      if (tlsCACertificateFolder && (TCS_ok != tLayer->addTrustedCertificateDir(tlsCACertificateFolder, keyFileFormat)))
+      if (tlsCACertificateFolder && (tLayer->addTrustedCertificateDir(tlsCACertificateFolder, keyFileFormat).bad()))
       {
         OFLOG_WARN(dcmpssndLogger, "unable to load certificates from directory '" << tlsCACertificateFolder << "', ignoring");
       }
@@ -614,12 +616,12 @@ int main(int argc, char *argv[])
 
       if (!tlsPrivateKeyFile.empty() && !tlsCertificateFile.empty())
       {
-        if (TCS_ok != tLayer->setPrivateKeyFile(tlsPrivateKeyFile.c_str(), keyFileFormat))
+        if (tLayer->setPrivateKeyFile(tlsPrivateKeyFile.c_str(), keyFileFormat).bad())
         {
           OFLOG_FATAL(dcmpssndLogger, "unable to load private TLS key from '" << tlsPrivateKeyFile<< "'");
           return 1;
         }
-        if (TCS_ok != tLayer->setCertificateFile(tlsCertificateFile.c_str(), keyFileFormat))
+        if (tLayer->setCertificateFile(tlsCertificateFile.c_str(), keyFileFormat, tlsProfile).bad())
         {
           OFLOG_FATAL(dcmpssndLogger, "unable to load certificate from '" << tlsCertificateFile << "'");
           return 1;
@@ -697,7 +699,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    cond = ASC_createAssociationParameters(&params, targetMaxPDU);
+    cond = ASC_createAssociationParameters(&params, targetMaxPDU, dcmConnectionTimeout.get());
     if (cond.bad())
     {
       OFLOG_FATAL(dcmpssndLogger, DimseCondition::dump(temp_str, cond));

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1993-2019, OFFIS e.V.
+ *  Copyright (C) 1993-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -20,14 +20,6 @@
  */
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
-
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CSTDARG
-#define INCLUDE_CTIME
-#define INCLUDE_LIBC
-#include "dcmtk/ofstd/ofstdinc.h"
 
 BEGIN_EXTERN_C
 #ifdef HAVE_SYS_FILE_H
@@ -91,7 +83,6 @@ static char rcsid[] = "$dcmtk: " OFFIS_CONSOLE_APPLICATION " v"
 
 #define APPLICATIONTITLE "DCMQRSCP"
 
-const char *opt_configFileName = DEFAULT_CONFIGURATION_DIR "dcmqrscp.cfg";
 OFBool      opt_checkFindIdentifier = OFFalse;
 OFBool      opt_checkMoveIdentifier = OFFalse;
 OFCmdUnsignedInt opt_port = 0;
@@ -105,7 +96,7 @@ static void mangleAssociationProfileKey(OFString& key)
   {
     if (!isspace(key[ui]))
     {
-      key[ui] = toupper(key[ui]);
+      key[ui] = OFstatic_cast(char, toupper(key[ui]));
       ++ui;
     }
     else key.erase(ui, 1);
@@ -115,6 +106,8 @@ static void mangleAssociationProfileKey(OFString& key)
 int
 main(int argc, char *argv[])
 {
+  OFString opt_configFileName = OFStandard::getDefaultConfigurationDir();
+  opt_configFileName += "dcmqrscp.cfg";
   OFCondition cond = EC_Normal;
   OFCmdUnsignedInt overridePort = 0;
   OFCmdUnsignedInt overrideMaxPDU = 0;
@@ -142,7 +135,7 @@ main(int argc, char *argv[])
     cmd.addOption("--version",                             "print version information and exit", OFCommandLine::AF_Exclusive);
     OFLog::addOptions(cmd);
 
-    if (strlen(opt_configFileName) > 16)
+    if (opt_configFileName.length() > 16)
     {
         OFString opt5 = "use specific configuration file\n(default: ";
         opt5 += opt_configFileName;
@@ -188,7 +181,7 @@ main(int argc, char *argv[])
   cmd.addGroup("network options:");
     cmd.addSubGroup("association negotiation profiles from configuration file:");
       cmd.addOption("--assoc-config-file",      "-xf",  3, "[f]ilename, [i]n-profile, [o]ut-profile: string",
-                                                           "use profile i from f for incoming associations\nuse profile o from f for outgoing associations");
+                                                           "use profile i from f for incoming associations,\nuse profile o from f for outgoing associations");
     cmd.addSubGroup("preferred network transfer syntaxes (incoming associations):");
       cmd.addOption("--prefer-uncompr",         "+x=",     "prefer explicit VR local byte order (default)");
       cmd.addOption("--prefer-little",          "+xe",     "prefer explicit VR little endian TS");
@@ -555,7 +548,7 @@ main(int argc, char *argv[])
         app.checkValue(cmd.getValue(options.outgoingProfile));
 
         // read configuration file
-        cond = DcmAssociationConfigurationFile::initialize(asccfg, options.associationConfigFile.c_str());
+        cond = DcmAssociationConfigurationFile::initialize(asccfg, options.associationConfigFile.c_str(), OFFalse);
         if (cond.bad())
         {
           OFLOG_FATAL(dcmqrscpLogger, "cannot read association config file: " << cond.text());
@@ -586,6 +579,13 @@ main(int argc, char *argv[])
           OFLOG_FATAL(dcmqrscpLogger, "profile '" << unmangledInProfile << "' is not valid for incoming use, duplicate abstract syntaxes found");
           return 1;
         }
+
+        if (!asccfg.isValidSCUProfile(options.outgoingProfile.c_str()))
+        {
+          OFLOG_FATAL(dcmqrscpLogger, "profile '" << unmangledOutProfile << "' is not valid for outgoing use, too many presentation contexts");
+          return 1;
+        }
+
       }
 
       cmd.beginOptionBlock();
@@ -775,7 +775,7 @@ main(int argc, char *argv[])
     OFLOG_DEBUG(dcmqrscpLogger, rcsid << OFendl);
 
     /* read config file */
-    if (access(opt_configFileName, R_OK) < 0) {
+    if (access(opt_configFileName.c_str(), R_OK) < 0) {
       OFLOG_FATAL(dcmqrscpLogger, "cannot access " << opt_configFileName << ": "
         << OFStandard::getLastSystemErrorCode().message());
       return 10;
@@ -783,7 +783,7 @@ main(int argc, char *argv[])
 
     DcmQueryRetrieveConfig config;
 
-    if (!config.init(opt_configFileName)) {
+    if (!config.init(opt_configFileName.c_str())) {
       OFLOG_FATAL(dcmqrscpLogger, "bad config file: " << opt_configFileName);
       return 10;
     }

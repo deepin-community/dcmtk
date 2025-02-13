@@ -3,7 +3,6 @@ enhanced_ct.o: enhanced_ct.cc ../include/dcmtk/dcmect/enhanced_ct.h \
  ../include/dcmtk/dcmect/def.h ../../ofstd/include/dcmtk/ofstd/ofdefine.h \
  ../../ofstd/include/dcmtk/ofstd/ofcast.h \
  ../../ofstd/include/dcmtk/ofstd/ofexport.h \
- ../../ofstd/include/dcmtk/ofstd/ofstdinc.h \
  ../include/dcmtk/dcmect/types.h \
  ../../dcmiod/include/dcmtk/dcmiod/iodmacro.h \
  ../../dcmdata/include/dcmtk/dcmdata/dctk.h \
@@ -11,6 +10,7 @@ enhanced_ct.o: enhanced_ct.cc ../include/dcmtk/dcmect/enhanced_ct.h \
  ../../oflog/include/dcmtk/oflog/oflog.h \
  ../../oflog/include/dcmtk/oflog/logger.h \
  ../../oflog/include/dcmtk/oflog/config.h \
+ ../../ofstd/include/dcmtk/ofstd/ofstdinc.h \
  ../../oflog/include/dcmtk/oflog/config/defines.h \
  ../../oflog/include/dcmtk/oflog/helpers/threadcf.h \
  ../../oflog/include/dcmtk/oflog/loglevel.h \
@@ -40,6 +40,10 @@ enhanced_ct.o: enhanced_ct.cc ../include/dcmtk/dcmect/enhanced_ct.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcswap.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcerror.h \
  ../../ofstd/include/dcmtk/ofstd/ofcond.h \
+ ../../ofstd/include/dcmtk/ofstd/ofdiag.h \
+ ../../ofstd/include/dcmtk/ofstd/diag/push.def \
+ ../../ofstd/include/dcmtk/ofstd/diag/useafree.def \
+ ../../ofstd/include/dcmtk/ofstd/diag/pop.def \
  ../../dcmdata/include/dcmtk/dcmdata/dcxfer.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcvr.h \
  ../../ofstd/include/dcmtk/ofstd/ofglobal.h \
@@ -54,6 +58,7 @@ enhanced_ct.o: enhanced_ct.cc ../include/dcmtk/dcmect/enhanced_ct.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcostrma.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcuid.h \
  ../../dcmdata/include/dcmtk/dcmdata/dctagkey.h \
+ ../../ofstd/include/dcmtk/ofstd/diag/ignrattr.def \
  ../../dcmdata/include/dcmtk/dcmdata/dctag.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcdicent.h \
  ../../dcmdata/include/dcmtk/dcmdata/dchashdi.h \
@@ -143,11 +148,10 @@ enhanced_ct.o: enhanced_ct.cc ../include/dcmtk/dcmect/enhanced_ct.h \
  ../../ofstd/include/dcmtk/ofstd/ofvriant.h \
  ../../ofstd/include/dcmtk/ofstd/variadic/variant.h \
  ../../ofstd/include/dcmtk/ofstd/variadic/helpers.h \
- ../../ofstd/include/dcmtk/ofstd/ofdiag.h \
- ../../ofstd/include/dcmtk/ofstd/diag/push.def \
  ../../ofstd/include/dcmtk/ofstd/diag/cnvrsn.def \
  ../../ofstd/include/dcmtk/ofstd/diag/vsprfw.def \
- ../../ofstd/include/dcmtk/ofstd/diag/pop.def \
+ ../../ofstd/include/dcmtk/ofstd/diag/arrybnds.def \
+ ../../ofstd/include/dcmtk/ofstd/diag/unrefprm.def \
  ../../dcmiod/include/dcmtk/dcmiod/modacquisitioncontext.h \
  ../../dcmiod/include/dcmtk/dcmiod/modenhequipment.h \
  ../../dcmiod/include/dcmtk/dcmiod/modimagepixel.h \
@@ -157,23 +161,19 @@ enhanced_ct.o: enhanced_ct.cc ../include/dcmtk/dcmect/enhanced_ct.h \
  ../../dcmfg/include/dcmtk/dcmfg/concatenationcreator.h \
  ../../dcmfg/include/dcmtk/dcmfg/concatenationloader.h \
  ../../dcmiod/include/dcmtk/dcmiod/iodutil.h \
- ../../dcmdata/include/dcmtk/dcmdata/dcdatutl.h \
- ../../ofstd/include/dcmtk/ofstd/oftuple.h \
- ../../ofstd/include/dcmtk/ofstd/diag/mmtag.def \
- ../../ofstd/include/dcmtk/ofstd/variadic/tuplefrd.h \
- ../../ofstd/include/dcmtk/ofstd/variadic/tuple.h
+ ../../dcmdata/include/dcmtk/dcmdata/dcdatutl.h
 types.o: types.cc ../include/dcmtk/dcmect/types.h \
  ../../config/include/dcmtk/config/osconfig.h \
  ../include/dcmtk/dcmect/def.h ../../ofstd/include/dcmtk/ofstd/ofdefine.h \
  ../../ofstd/include/dcmtk/ofstd/ofcast.h \
  ../../ofstd/include/dcmtk/ofstd/ofexport.h \
- ../../ofstd/include/dcmtk/ofstd/ofstdinc.h \
  ../../dcmiod/include/dcmtk/dcmiod/iodmacro.h \
  ../../dcmdata/include/dcmtk/dcmdata/dctk.h \
  ../../dcmdata/include/dcmtk/dcmdata/dctypes.h \
  ../../oflog/include/dcmtk/oflog/oflog.h \
  ../../oflog/include/dcmtk/oflog/logger.h \
  ../../oflog/include/dcmtk/oflog/config.h \
+ ../../ofstd/include/dcmtk/ofstd/ofstdinc.h \
  ../../oflog/include/dcmtk/oflog/config/defines.h \
  ../../oflog/include/dcmtk/oflog/helpers/threadcf.h \
  ../../oflog/include/dcmtk/oflog/loglevel.h \
@@ -203,6 +203,10 @@ types.o: types.cc ../include/dcmtk/dcmect/types.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcswap.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcerror.h \
  ../../ofstd/include/dcmtk/ofstd/ofcond.h \
+ ../../ofstd/include/dcmtk/ofstd/ofdiag.h \
+ ../../ofstd/include/dcmtk/ofstd/diag/push.def \
+ ../../ofstd/include/dcmtk/ofstd/diag/useafree.def \
+ ../../ofstd/include/dcmtk/ofstd/diag/pop.def \
  ../../dcmdata/include/dcmtk/dcmdata/dcxfer.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcvr.h \
  ../../ofstd/include/dcmtk/ofstd/ofglobal.h \
@@ -217,6 +221,7 @@ types.o: types.cc ../include/dcmtk/dcmect/types.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcostrma.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcuid.h \
  ../../dcmdata/include/dcmtk/dcmdata/dctagkey.h \
+ ../../ofstd/include/dcmtk/ofstd/diag/ignrattr.def \
  ../../dcmdata/include/dcmtk/dcmdata/dctag.h \
  ../../dcmdata/include/dcmtk/dcmdata/dcdicent.h \
  ../../dcmdata/include/dcmtk/dcmdata/dchashdi.h \

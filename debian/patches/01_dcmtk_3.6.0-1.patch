@@ -2,7 +2,7 @@ Author: Jürgen Salk <jsa@debian.org>
 Description: The original maintainer Jürgen Salk applied
  a set of patches to the original code.  This file contains
  changes to C++ code
-Forwarded: no
+Forwarded: not-needed
 
 --- a/dcmqrdb/etc/dcmqrscp.cfg
 +++ b/dcmqrdb/etc/dcmqrscp.cfg

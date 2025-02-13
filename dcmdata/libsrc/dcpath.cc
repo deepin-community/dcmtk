@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2008-2020, OFFIS e.V.
+ *  Copyright (C) 2008-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -24,9 +24,6 @@
 
 #include "dcmtk/dcmdata/dcpath.h"
 #include "dcmtk/dcmdata/dcsequen.h"
-
-#define INCLUDE_CINTTYPES
-#include "dcmtk/ofstd/ofstdinc.h"
 
 /*******************************************************************/
 /*              Implementation of class DcmPath                    */
@@ -653,7 +650,7 @@ OFCondition DcmPathProcessor::findOrCreateItemPath(DcmItem* item, OFString& path
                     // check private reservation if desired
                     if (m_checkPrivateReservations)
                     {
-                        status = checkPrivateTagReservation(item, tag.getXTag());
+                        status = checkPrivateTagReservation(item, tag.getTagKey());
                         if (status.bad())
                             return status;
                     }
@@ -945,11 +942,11 @@ DcmPathProcessor::checkPrivateTagReservation(DcmItem* item, const DcmTagKey& tag
         // check whether private creator is correct
         if (actualPrivateCreator != privateCreator)
         {
-            OFString msg = "Private creator string (";
+            OFString msg = "Private creator identifier (";
             msg += actualPrivateCreator;
             msg += ") other than expected ( ";
             msg += privateCreator;
-            msg += privateCreator;
+            msg += ")";
             return makeOFCondition(OFM_dcmdata, 25, OF_error, msg.c_str());
         }
     }

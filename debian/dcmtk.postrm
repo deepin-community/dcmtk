@@ -13,6 +13,16 @@ if [ "$1" = "purge" ] ; then
    if [ -e /etc/init.d/imagectn.dpkg-old ]; then
       rm -f /etc/init.d/imagectn.dpkg-old
    fi
+
+   if [ -d /var/lib/dcmtk/db/STORESCP ]; then
+      rm -rf /var/lib/dcmtk/db/STORESCP
+   fi
+fi
+
+# Remove dcmtk user/group if they exist on cleanup
+if id -u "dcmtk" > /dev/null 2>&1; then
+	echo "Removing \`dcmtk' user and group from the system..."
+	userdel dcmtk
 fi
 
 #DEBHELPER#	

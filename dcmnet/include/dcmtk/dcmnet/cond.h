@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2018, OFFIS e.V.
+ *  Copyright (C) 1994-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -24,6 +24,7 @@
 
 #include "dcmtk/config/osconfig.h"
 #include "dcmtk/ofstd/ofconsol.h"
+#include "dcmtk/ofstd/ofdeprec.h"
 #include "dcmtk/dcmdata/dcerror.h"
 #include "dcmtk/dcmnet/dndefine.h"
 
@@ -239,13 +240,18 @@ public:
    *  @param console console to dump to
    *  @deprecated Please use the other dump() function instead!
    */
-  static void dump(OFCondition cond, OFConsole& console = ofConsole);
+  OFdeprecated static void dump(OFCondition cond, OFConsole& console = ofConsole);
 
   /** creates a new condition from the given parameters and the sub-condition.
    *  This method is intended as a replacement for COND_PushCondition().
    *  Instead of maintaining a global condition stack (which is difficult
    *  in multi-threaded applications), the error text of the sub-condition
    *  is appended to the newly created condition.
+   *  @param aModule the module for the condition
+   *  @param aCode the code for the condition
+   *  @param aStatus the status for the condition
+   *  @param aText the error text
+   *  @param subCondition the sub-condition
    */
   static OFCondition push(
     unsigned short aModule,
@@ -259,6 +265,8 @@ public:
    *  Instead of maintaining a global condition stack (which is difficult
    *  in multi-threaded applications), the error text of the sub-condition
    *  is appended to the newly created condition.
+   *  @param newCondition the condition
+   *  @param subCondition the sub-condition
    */
   static OFCondition push(
     OFCondition newCondition,

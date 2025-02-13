@@ -43,8 +43,8 @@ HierarchyLocker::HierarchyLocker(Hierarchy& _h)
     // Get a copy of all of the Hierarchy's Loggers (except the Root Logger)
     h.initializeLoggerList(loggerList);
 
-    // Lock all of the Hierarchy's Loggers' mutexs
-    LoggerList::iterator it;
+    // Lock all of the Hierarchy's Loggers' mutexes
+    LoggerList::iterator it = loggerList.begin();;
     try
     {
         for (it = loggerList.begin(); it != loggerList.end(); ++it)

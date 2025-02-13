@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1993-2019, OFFIS e.V.
+ *  Copyright (C) 1993-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -96,7 +96,7 @@ void DcmQueryRetrieveMoveContext::callbackHandler(
              */
             cond = buildSubAssociation(request);
             if (cond == QR_EC_InvalidPeer) {
-                dbStatus.setStatus(STATUS_MOVE_Failed_MoveDestinationUnknown);
+                dbStatus.setStatus(STATUS_MOVE_Refused_MoveDestinationUnknown);
             } else if (cond.bad()) {
                 /* failed to build association, must fail move */
                 failAllSubOperations(&dbStatus);
@@ -289,7 +289,7 @@ OFCondition DcmQueryRetrieveMoveContext::buildSubAssociation(T_DIMSE_C_MoveRQ *r
     DIC_NODENAME dstHostName;
     DIC_NODENAME dstHostNamePlusPort;
     int dstPortNumber;
-    T_ASC_Parameters *params;
+    T_ASC_Parameters *params = NULL;
     OFString temp_str;
 
     OFStandard::strlcpy(dstAETitle, request->MoveDestination, DIC_AE_LEN + 1);
@@ -312,7 +312,7 @@ OFCondition DcmQueryRetrieveMoveContext::buildSubAssociation(T_DIMSE_C_MoveRQ *r
         return QR_EC_InvalidPeer;
     }
     if (cond.good()) {
-        cond = ASC_createAssociationParameters(&params, ASC_DEFAULTMAXPDU);
+        cond = ASC_createAssociationParameters(&params, ASC_DEFAULTMAXPDU, dcmConnectionTimeout.get());
         if (cond.bad()) {
             DCMQRDB_ERROR("moveSCP: Cannot create Association-params for sub-ops: " << DimseCondition::dump(temp_str, cond));
         }
@@ -393,9 +393,9 @@ void DcmQueryRetrieveMoveContext::moveNextImage(DcmQueryRetrieveDatabaseStatus *
     char subImgFileName[MAXPATHLEN + 1];    /* sub-operation image file */
 
     /* clear out strings */
-    bzero(subImgFileName, sizeof(subImgFileName));
-    bzero(subImgSOPClass, sizeof(subImgSOPClass));
-    bzero(subImgSOPInstance, sizeof(subImgSOPInstance));
+    memset(subImgFileName, 0, sizeof(subImgFileName));
+    memset(subImgSOPClass, 0, sizeof(subImgSOPClass));
+    memset(subImgSOPInstance,0, sizeof(subImgSOPInstance));
 
     /* get DB response */
     dbcond = dbHandle.nextMoveResponse(
@@ -424,9 +424,9 @@ void DcmQueryRetrieveMoveContext::failAllSubOperations(DcmQueryRetrieveDatabaseS
     char subImgFileName[MAXPATHLEN + 1];    /* sub-operation image file */
 
     /* clear out strings */
-    bzero(subImgFileName, sizeof(subImgFileName));
-    bzero(subImgSOPClass, sizeof(subImgSOPClass));
-    bzero(subImgSOPInstance, sizeof(subImgSOPInstance));
+    memset(subImgFileName, 0, sizeof(subImgFileName));
+    memset(subImgSOPClass, 0, sizeof(subImgSOPClass));
+    memset(subImgSOPInstance, 0, sizeof(subImgSOPInstance));
 
     while (dbStatus->status() == STATUS_Pending) {
         /* get DB response */
@@ -698,7 +698,7 @@ OFCondition DcmQueryRetrieveMoveContext::addAllStoragePresentationContexts(T_ASC
 
     for (i = 0; i < numberOfDcmLongSCUStorageSOPClassUIDs && cond.good(); i++) {
         cond = ASC_addPresentationContext(
-            params, pid, dcmLongSCUStorageSOPClassUIDs[i],
+            params, OFstatic_cast(T_ASC_PresentationContextID, pid), dcmLongSCUStorageSOPClassUIDs[i],
             transferSyntaxes, numTransferSyntaxes);
         pid += 2;   /* only odd presentation context id's */
     }

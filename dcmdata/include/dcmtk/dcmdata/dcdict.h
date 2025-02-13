@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2018, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -48,6 +48,16 @@
 #ifndef ENVIRONMENT_PATH_SEPARATOR
 #define ENVIRONMENT_PATH_SEPARATOR '\n' /* at least define something unlikely */
 #endif
+
+/*
+** Loading of default dictionary:
+**  DCM_DICT_DEFAULT_USE_NONE: Do not load any default dictionary on startup
+**  DCM_DICT_DEFAULT_USE_BUILTIN: Load builtin dictionary on startup
+**  DCM_DICT_DEFAULT_USE_EXTERNAL: Load external (i.e. file-based) dictionary on startup
+*/
+#define DCM_DICT_DEFAULT_USE_NONE     0
+#define DCM_DICT_DEFAULT_USE_BUILTIN  1
+#define DCM_DICT_DEFAULT_USE_EXTERNAL 2
 
 
 /** this class implements a loadable DICOM Data Dictionary
@@ -103,25 +113,25 @@ public:
 
     /** load a particular dictionary from file.
      *  @param fileName filename
-     *  @param errorIfAbsent causes the method to return false
-     *     if the file cannot be opened
+     *  @param errorIfAbsent causes the method to return false if the file
+     *     cannot be opened
      *  @return false if the file contains a parse error or if the file could
      *     not be opened and errorIfAbsent was set, true otherwise.
      */
     OFBool loadDictionary(const char* fileName, OFBool errorIfAbsent = OFTrue);
 
-    /** dictionary lookup for the given tag key and private creator name.
-     *  First the normal tag dictionary is searched.  If not found
-     *  then the repeating tag dictionary is searched.
+    /** dictionary lookup for the given tag key and private creator identifier.
+     *  First the normal tag dictionary is searched.  If not found then the
+     *  repeating tag dictionary is searched.
      *  @param key tag key
-     *  @param privCreator private creator name, may be NULL
+     *  @param privCreator private creator identifier, may be NULL
      */
     const DcmDictEntry* findEntry(const DcmTagKey& key, const char *privCreator) const;
 
     /** dictionary lookup for the given attribute name.
-     *  First the normal tag dictionary is searched.  If not found
-     *  then the repeating tag dictionary is searched.
-     *  Only considers standard attributes (i. e. without private creator)
+     *  First the normal tag dictionary is searched.  If not found then the
+     *  repeating tag dictionary is searched.
+     *  Only considers standard attributes (i. e. without private creator).
      *  @param name attribute name
      */
     const DcmDictEntry* findEntry(const char *name) const;
@@ -179,11 +189,13 @@ private:
     OFBool loadSkeletonDictionary();
 
     /** looks up the given directory entry in the two dictionaries.
+     *  @param entry the entry to look up
      *  @return pointer to entry if found, NULL otherwise
      */
     const DcmDictEntry* findEntry(const DcmDictEntry& entry) const;
 
     /** deletes the given entry from either dictionary
+     * @param entry the entry to delete
      */
     void deleteEntry(const DcmDictEntry& entry);
 
@@ -268,7 +280,7 @@ private:
   GlobalDcmDataDictionary(const GlobalDcmDataDictionary &);
 
   /** create the data dictionary instance for this class. Used for first
-   * intialization.  The caller must not have dataDictLock locked.
+   * initialization.  The caller must not have dataDictLock locked.
    */
   void createDataDict();
 

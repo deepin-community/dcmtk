@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2018, OFFIS e.V.
+ *  Copyright (C) 1994-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were partly developed by
@@ -67,17 +67,12 @@
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
-
 #include "dcmtk/dcmnet/dicom.h"
 #include "dcmtk/dcmnet/cond.h"
 #include "dcmtk/dcmnet/diutil.h"
 #include "dcmtk/dcmnet/lst.h"
 #include "dcmtk/dcmnet/dul.h"
-#include "dulstruc.h"
+#include "dcmtk/dcmnet/dulstruc.h"
 #include "dulpriv.h"
 #include "dcmtk/ofstd/ofconsol.h"
 
@@ -669,7 +664,7 @@ constructSubItem(char *name, unsigned char type,
     if (strlen(name) < 1 || strlen(name) > 64)
     {
         char buf[1024];
-        sprintf(buf,"Illegal service parameter: %s", name);
+        OFStandard::snprintf(buf, 1024, "Illegal service parameter: %s", name);
         return makeDcmnetCondition(DULC_ILLEGALSERVICEPARAMETER, OF_error, buf);
     }
     subItem->type = type;
@@ -692,7 +687,7 @@ constructSubItem(char *name, unsigned char type,
 **  contextID               Unique value identifying this presentation
 **                          context
 **  reason                  Reason to be included in the result field
-**  abstractSyntax          Used to build teh abstract syntax list
+**  abstractSyntax          Used to build the abstract syntax list
 **  proposedTransferSyntax  Proposed transfer characteristics (to be
 **                          negotiated)
 **  acceptedTransferSyntax  Accepted transfer characteristics (after
@@ -717,7 +712,7 @@ constructPresentationContext(unsigned char associateType,
            PRV_PRESENTATIONCONTEXTITEM * context, unsigned long *rtnLen)
 {
     OFCondition cond = EC_Normal;
-    unsigned long length;
+    unsigned long length = 0;
     /* Subitem pointer created for transfer syntax items */
     DUL_SUBITEM * subItem;
     /* Pointer to loop through list of transfer syntaxes */
@@ -978,7 +973,7 @@ constructSCUSCPRoles(unsigned char type,
   DUL_PRESENTATIONCONTEXT* presentationCtx;
   PRV_SCUSCPROLE* scuscpItem;
   unsigned char scuRole = 0, scpRole = 0;
-  unsigned long length;
+  unsigned long length = 0;
 
   *rtnLength = 0;
   OFCondition cond = EC_Normal;
@@ -1141,7 +1136,7 @@ constructSCUSCPSubItem(char *name, unsigned char type, unsigned char scuRole,
     if (strlen(name) < 1 || strlen(name) > 64)
     {
         char buf[1024];
-        sprintf(buf,"Illegal service parameter: %s", name);
+        OFStandard::snprintf(buf, 1024, "Illegal service parameter: %s", name);
         return makeDcmnetCondition(DULC_ILLEGALSERVICEPARAMETER, OF_error, buf);
     }
 

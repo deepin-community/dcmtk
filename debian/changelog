@@ -1,12 +1,232 @@
-dcmtk (3.6.6-1deepin0) unstable; urgency=medium
+dcmtk (3.6.8-7) unstable; urgency=medium
 
-  [ Debian Med Packaging Team ]
-  * update
+  * Team upload.
+  * 0001-Fixed-unchecked-typecasts-of-DcmItem-search-results.patch.
+    Patch refreshed.
+  * 0004-Fixed-two-segmentation-faults.patch: unfuzz.
+  * 0007-CVE-2024-47796.patch: new.
+    This patch addresses CVE-2024-47796. (Closes: #1093043)
+  * 0008-CVE-2024-52333.patch: new.
+    This patch addresses CVE-2024-52333. (Closes: #1093047)
 
-  [ Tianyu Chen ]
-  * No source change upload against GCC 12.
+ -- Étienne Mollier <emollier@debian.org>  Sat, 18 Jan 2025 16:30:29 +0100
 
- -- Tianyu Chen <sweetyfish@deepin.org>  Thu, 19 Sep 2024 22:44:45 +0800
+dcmtk (3.6.8-6) unstable; urgency=medium
+
+  * d/t/run-unit-test: Fix unit-test for new release. Closes: #1075917
+  * d/patches: Fixed possible overflows when allocating memory. Closes: #1074483
+
+ -- Mathieu Malaterre <malat@debian.org>  Mon, 08 Jul 2024 13:31:04 +0200
+
+dcmtk (3.6.8-5) unstable; urgency=medium
+
+  * Upload 3.6.8 to unstable
+  * d/control: Bump Std-Vers to 4.7.0 no changes needed
+
+ -- Mathieu Malaterre <malat@debian.org>  Fri, 05 Jul 2024 11:24:00 +0200
+
+dcmtk (3.6.8-4) experimental; urgency=medium
+
+  * d/rules: Add dcmtk-data package
+  * d/control: Add missing dependency on libjs-jquery. Closes: #989108
+  * d/control: Reduce number of dependencies for -dev package
+  * New upstream version 3.6.8
+
+ -- Mathieu Malaterre <malat@debian.org>  Mon, 24 Jun 2024 20:43:54 +0200
+
+dcmtk (3.6.7-15) unstable; urgency=medium
+
+  * Team upload.
+  [ Adrian Bunk ]
+  * Update two of the previously applied patches to avoid breaking the ABI.
+    Closes: #1070207.
+
+ -- Santiago Vila <sanvila@debian.org>  Mon, 24 Jun 2024 12:30:00 +0200
+
+dcmtk (3.6.7-14) unstable; urgency=medium
+
+  * Team upload.
+  [ Emanuele Rocca ]
+  * Do not drop graphviz from build-depends-indep for armhf and armel.
+  [ Adrian Bunk ]
+  * CVE-2024-28130: Segmentation faults due to incorrect typecast
+    (Closes: #1070207)
+  * CVE-2024-34508: Segmentation fault via invalid DIMSE message
+  * CVE-2024-34509: Segmentation fault via invalid DIMSE message
+
+ -- Santiago Vila <sanvila@debian.org>  Wed, 05 Jun 2024 14:30:00 +0200
+
+dcmtk (3.6.7-13) unstable; urgency=medium
+
+  * Team upload.
+  * Marked Debian-specific patches as not needing forwarding to
+    upstream.
+  * d/control: add explicit dependency on libnsl-dev. Closes: #1066422.
+
+ -- Michael R. Crusoe <crusoe@debian.org>  Tue, 19 Mar 2024 15:24:15 +0100
+
+dcmtk (3.6.7-12) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Emanuele Rocca ]
+  * Do not build-depend on graphviz on armhf and armel. The package is
+    currently not installable on those arches due to the ongoing t64
+    transition. Closes: #1067147
+
+ -- Michael R. Crusoe <crusoe@debian.org>  Tue, 19 Mar 2024 12:30:03 +0100
+
+dcmtk (3.6.7-11) unstable; urgency=medium
+
+  * Fix typo in target distribution during upload.
+
+ -- Sebastien Jodogne <s.jodogne@gmail.com>  Tue, 19 Mar 2024 11:54:38 +0100
+
+dcmtk (3.6.7-10) unreleased; urgency=medium
+
+  * Fix build on armel.  Closes: #1060104
+
+ -- Sebastien Jodogne <s.jodogne@gmail.com>  Tue, 19 Mar 2024 11:03:28 +0100
+
+dcmtk (3.6.7-9.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Rename libraries for 64-bit time_t transition.  Closes: #1062022
+
+ -- Michael Hudson-Doyle <mwhudson@debian.org>  Wed, 28 Feb 2024 01:17:02 +0000
+
+dcmtk (3.6.7-9) unstable; urgency=medium
+
+  * Team upload.
+  * Fix postrm
+    Closes: #1038776
+
+ -- Andreas Tille <tille@debian.org>  Thu, 22 Jun 2023 09:53:48 +0200
+
+dcmtk (3.6.7-8) unstable; urgency=medium
+
+  * d/patches: Fix CVE-2022-43272. Closes: #1027165
+  * d/control: Bump Std-Vers to 4.6.2 no changes needed
+
+ -- Mathieu Malaterre <malat@debian.org>  Wed, 04 Jan 2023 11:15:13 +0100
+
+dcmtk (3.6.7-7) unstable; urgency=medium
+
+  [ Andreas Tille ]
+  * Team upload.
+  * Prevent bashism in run-unit-test
+  * Enable running run-unit-test from any directory
+  * Add maintscript to remove outdated conffiles
+    Closes: #990134
+  * On purge remove /var/lib/dcmtk/db/STORESCP if exists
+    Closes: #990135
+
+  [ Mathieu Malaterre ]
+  * d/control: Add missing dependency on libjs-jquery. Closes: #989108
+
+ -- Andreas Tille <tille@debian.org>  Tue, 06 Dec 2022 11:52:52 +0100
+
+dcmtk (3.6.7-6) unstable; urgency=medium
+
+  [ Mathieu Malaterre ]
+  * Team upload.
+  * d/control: libdcmtk4 is not present in o-o-stable
+  * d/postrm: Fix possible-bashism-in-maintainer-script
+  * d/patches: CVE-2022-2119 CVE-2022-2120. Closes: #1017743
+
+  [ Mohammed Bilal ]
+  * Add autopkgtests
+  * Bump Standards-Version to 4.6.1 (no changes needed)
+
+ -- Mathieu Malaterre <malat@debian.org>  Mon, 22 Aug 2022 17:02:26 +0200
+
+dcmtk (3.6.7-5) unstable; urgency=medium
+
+  [ Gregory C. Sharp ]
+  * Change CMAKE_INSTALL_DATADIC to CMAKE_INSTALL_DATADIR in an attempt
+    to fix dictionary load failure
+
+ -- Andreas Tille <tille@debian.org>  Fri, 17 Jun 2022 21:41:44 +0200
+
+dcmtk (3.6.7-4) unstable; urgency=medium
+
+  * Team upload.
+  * Fix install dir of dictionaries
+    Closes: #1012417
+
+ -- Andreas Tille <tille@debian.org>  Tue, 07 Jun 2022 09:05:06 +0200
+
+dcmtk (3.6.7-3) unstable; urgency=medium
+
+  * Source-only upload
+  * Breaks+Replaces: libdcmtk16
+
+ -- Andreas Tille <tille@debian.org>  Mon, 06 Jun 2022 19:39:49 +0200
+
+dcmtk (3.6.7-2) unstable; urgency=medium
+
+  * Team upload.
+  * Upstream has bumped SONAME thus rename binary package for shared
+    library
+    Closes: #1010536
+
+ -- Andreas Tille <tille@debian.org>  Wed, 04 May 2022 09:08:00 +0200
+
+dcmtk (3.6.7-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream version
+    Closes: #1010474
+  * Point watch file to Github
+  * Drop useless get-orig-source target (routine-update)
+  * Remove trailing whitespace in debian/changelog (routine-update)
+  * Remove trailing whitespace in debian/rules (routine-update)
+  * Drop debian/gbp.conf
+  * Install pkgconfig file
+  * Review d/copyright
+  * Drop unneeded lintian-override
+
+ -- Andreas Tille <tille@debian.org>  Tue, 03 May 2022 10:28:02 +0200
+
+dcmtk (3.6.6-6) UNRELEASED; urgency=medium
+
+  * d/dcmtk.postrm: Added check to remove dcmtk user (Closes: #987972)
+  * d/dcmtk.postinst: Change dcmtk user shell to nologin
+
+ -- Lance Lin <LQi254@protonmail.com>  Wed, 13 Apr 2022 19:36:57 +0700
+
+dcmtk (3.6.6-5) unstable; urgency=medium
+
+  * d/rules: Re-exposed --interleave-none option. Closes: #1001703
+  * d/rules: Start using c++17 since default for GCC-11
+
+ -- Mathieu Malaterre <malat@debian.org>  Thu, 06 Jan 2022 16:33:20 +0100
+
+dcmtk (3.6.6-4) unstable; urgency=medium
+
+  * d/u/metadata: Add publication about DCMTK
+  * d/patches: Add new patch to fix random unit test failures
+  * d/control: Bump Std-Vers to 4.6.0, no changes needed
+  * d/watch: Update to latest uscan version
+  * d/rules: Remove as-needed-linker-flag
+  * d/control: Add missing Rules-Requires-Root: no
+  * d/patches: Import bug-fixes from git/master
+
+ -- Mathieu Malaterre <malat@debian.org>  Wed, 08 Dec 2021 10:27:21 +0100
+
+dcmtk (3.6.6-3) unstable; urgency=medium
+
+  * d/patches: Fix compilation of dicomscope. Closes: #1000220
+  * d/control: Add myself as Uploader
+
+ -- Mathieu Malaterre <malat@debian.org>  Tue, 23 Nov 2021 08:15:20 +0100
+
+dcmtk (3.6.6-2) unstable; urgency=medium
+
+  * Team upload.
+  * d/patches: Fix unit test suite on big endian machine
+
+ -- Mathieu Malaterre <malat@debian.org>  Thu, 18 Nov 2021 08:44:13 +0100
 
 dcmtk (3.6.6-1) unstable; urgency=medium
 
@@ -86,9 +306,9 @@ dcmtk (3.6.4-1~exp1) experimental; urgency=medium
 
   [ Gert Wollny ]
   * New upstream version 3.6.4
-  * d/p: Update patches for new release and remove old patches 
-  * d/control: Update lib package name 
-  * d/rules: Change dict install directory to new lib name 
+  * d/p: Update patches for new release and remove old patches
+  * d/control: Update lib package name
+  * d/rules: Change dict install directory to new lib name
   * d/dcmtk.postinst: Disable running chown recursively
   * d/copyright: Add new libcmr files with non-OFFICE copyright
 
@@ -757,4 +977,3 @@ dcmtk (3.5.3-1) unstable; urgency=low
   * Added newline in dcmwlm/wlistdb/OFFIS to prevent lintian "zero-bye" warning
 
  -- Juergen Salk <juergen.salk@gmx.de>  Sat, 30 Oct 2004 11:02:48 +0200
-

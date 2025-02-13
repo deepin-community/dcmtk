@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2012-2013, OFFIS e.V.
+ *  Copyright (C) 2012-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -15,7 +15,7 @@
  *
  *  Author:  Jan Schlamelcher
  *
- *  Purpose: test programm for functions and classes defined in
+ *  Purpose: test program for functions and classes defined in
  *           ofmem.h (OFshared_ptr)
  *
  */
@@ -25,6 +25,8 @@
 #define OFTEST_OFSTD_ONLY
 #include "dcmtk/ofstd/oftest.h"
 #include "dcmtk/ofstd/ofmem.h"
+#include "dcmtk/ofstd/ofdiag.h"
+#include DCMTK_DIAGNOSTIC_IGNORE_PESSIMIZING_MOVE_WARNING
 
 OFrvalue<OFunique_ptr<int> > testMove()
 {
@@ -56,7 +58,7 @@ OFTEST(ofstd_memory)
     // The static cast is necessary since the c++11 version
     // of operator bool is explicit.
     OFCHECK_EQUAL( OFstatic_cast( OFBool, p0 ), !p1 );
-    // check the refered object is still valid.
+    // check the referred object is still valid.
     OFCHECK_EQUAL( *p1, 8 );
 
     // create a unique_ptr.
