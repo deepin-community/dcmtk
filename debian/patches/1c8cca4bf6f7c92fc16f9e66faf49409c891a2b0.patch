@@ -1,0 +1,90 @@
+From 1c8cca4bf6f7c92fc16f9e66faf49409c891a2b0 Mon Sep 17 00:00:00 2001
+From: Marco Eichelberg <dicom@offis.de>
+Date: Fri, 5 Feb 2021 17:50:44 +0100
+Subject: [PATCH] Adjusted the number of digits printed for FL and FD.
+
+Adjusted the number of digits printed for FL elements to FLT_DECIMAL_DIG
+(9) instead of 8, to make sure that the printed values can be converted
+back to FL without loss. Fixed comment for FD, where the values was
+already correct.
+
+Thanks to Mathieu Malaterre <mathieu.malaterre@gmail.com> for pointing
+out the issue.
+---
+ dcmdata/libsrc/dcvrfd.cc | 8 ++++----
+ dcmdata/libsrc/dcvrfl.cc | 8 ++++----
+ 2 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/dcmdata/libsrc/dcvrfd.cc b/dcmdata/libsrc/dcvrfd.cc
+index 72d9dd5f8..3fabe0a7f 100644
+--- a/dcmdata/libsrc/dcvrfd.cc
++++ b/dcmdata/libsrc/dcvrfd.cc
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2020, OFFIS e.V.
++ *  Copyright (C) 1994-2021, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -190,11 +190,11 @@ void DcmFloatingPointDouble::print(STD_NAMESPACE ostream &out,
+                 {
+                     /* check whether first value is printed (omit delimiter) */
+                     if (i == 0)
+-                        OFStandard::ftoa(buffer, sizeof(buffer), *doubleVals, 0, 0, 17 /* DBL_DIG + 2 for DICOM FD */);
++                        OFStandard::ftoa(buffer, sizeof(buffer), *doubleVals, 0, 0, 17 /* DBL_DECIMAL_DIG for DICOM FD */);
+                     else
+                     {
+                         buffer[0] = '\\';
+-                        OFStandard::ftoa(buffer + 1, sizeof(buffer) - 1, *doubleVals, 0, 0, 17 /* DBL_DIG + 2 for DICOM FD */);
++                        OFStandard::ftoa(buffer + 1, sizeof(buffer) - 1, *doubleVals, 0, 0, 17 /* DBL_DECIMAL_DIG for DICOM FD */);
+                     }
+                     /* check whether current value sticks to the length limit */
+                     newLength = printedLength + OFstatic_cast(unsigned long, strlen(buffer));
+@@ -273,7 +273,7 @@ OFCondition DcmFloatingPointDouble::getOFString(OFString &stringVal,
+     {
+         /* ... and convert it to a character string */
+         char buffer[64];
+-        OFStandard::ftoa(buffer, sizeof(buffer), doubleVal, 0, 0, 17 /* DBL_DIG + 2 for DICOM FD */);
++        OFStandard::ftoa(buffer, sizeof(buffer), doubleVal, 0, 0, 17 /* DBL_DECIMAL_DIG for DICOM FD */);
+         /* assign result */
+         stringVal = buffer;
+     }
+diff --git a/dcmdata/libsrc/dcvrfl.cc b/dcmdata/libsrc/dcvrfl.cc
+index 5eb83fafc..0934af4f1 100644
+--- a/dcmdata/libsrc/dcvrfl.cc
++++ b/dcmdata/libsrc/dcvrfl.cc
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 1994-2020, OFFIS e.V.
++ *  Copyright (C) 1994-2021, OFFIS e.V.
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation were developed by
+@@ -192,11 +192,11 @@ void DcmFloatingPointSingle::print(STD_NAMESPACE ostream &out,
+                 {
+                     /* check whether first value is printed (omit delimiter) */
+                     if (i == 0)
+-                        OFStandard::ftoa(buffer, sizeof(buffer), *floatVals, 0, 0, 8 /* FLT_DIG + 2 for DICOM FL */);
++                        OFStandard::ftoa(buffer, sizeof(buffer), *floatVals, 0, 0, 9 /* FLT_DECIMAL_DIG for DICOM FL */);
+                     else
+                     {
+                         buffer[0] = '\\';
+-                        OFStandard::ftoa(buffer + 1, sizeof(buffer) - 1, *floatVals, 0, 0, 8 /* FLT_DIG + 2 for DICOM FL */);
++                        OFStandard::ftoa(buffer + 1, sizeof(buffer) - 1, *floatVals, 0, 0, 9 /* FLT_DECIMAL_DIG for DICOM FL */);
+                     }
+                     /* check whether current value sticks to the length limit */
+                     newLength = printedLength + OFstatic_cast(unsigned long, strlen(buffer));
+@@ -275,7 +275,7 @@ OFCondition DcmFloatingPointSingle::getOFString(OFString &value,
+     {
+         /* ... and convert it to a character string */
+         char buffer[64];
+-        OFStandard::ftoa(buffer, sizeof(buffer), floatVal, 0, 0, 8 /* FLT_DIG + 2 for DICOM FL */);
++        OFStandard::ftoa(buffer, sizeof(buffer), floatVal, 0, 0, 9 /* FLT_DECIMAL_DIG for DICOM FL */);
+         /* assign result */
+         value = buffer;
+     }
+-- 
+2.30.2
+

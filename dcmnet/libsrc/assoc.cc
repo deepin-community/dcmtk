@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2020, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were partly developed by
@@ -99,13 +99,6 @@
 #include "dcmtk/dcmnet/assoc.h"       /* always include the module header */
 #include "dcmtk/dcmnet/diutil.h"
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CSTDARG
-#define INCLUDE_CERRNO
-#include "dcmtk/ofstd/ofstdinc.h"
-
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -125,6 +118,7 @@
 #include "dcmtk/ofstd/ofconsol.h"
 #include "dcmtk/ofstd/ofstd.h"
 #include "dcmtk/dcmnet/dcmtrans.h"
+#include "dcmtk/dcmnet/helpers.h"
 
 /*
 ** Constant Definitions
@@ -279,12 +273,13 @@ ASC_dropNetwork(T_ASC_Network ** network)
 
 OFCondition
 ASC_createAssociationParameters(T_ASC_Parameters ** params,
-        long maxReceivePDUSize)
+                                long maxReceivePDUSize,
+                                Sint32 tcpConnectTimeout)
 {
 
     *params = (T_ASC_Parameters *) malloc(sizeof(**params));
     if (*params == NULL) return EC_MemoryExhausted;
-    bzero((char*)*params, sizeof(**params));
+    memset((char*)*params, 0, sizeof(**params));
 
     OFStandard::strlcpy((*params)->ourImplementationClassUID,
             OFFIS_IMPLEMENTATION_CLASS_UID,
@@ -310,7 +305,7 @@ ASC_createAssociationParameters(T_ASC_Parameters ** params,
     ASC_setAPTitles(*params,
                     "calling AP Title",
                     "called AP Title",
-                    "resp. AP Title");
+                    "");
 
     /* make sure max pdv length is even */
     if ((maxReceivePDUSize % 2) != 0)
@@ -340,39 +335,31 @@ ASC_createAssociationParameters(T_ASC_Parameters ** params,
     (*params)->DULparams.acceptedPresentationContext = NULL;
 
     (*params)->DULparams.useSecureLayer = OFFalse;
+    (*params)->DULparams.tcpConnectTimeout = tcpConnectTimeout;
     return EC_Normal;
 }
 
-static void
-destroyPresentationContextList(LST_HEAD ** lst)
-{
-    DUL_PRESENTATIONCONTEXT *pc;
-    DUL_TRANSFERSYNTAX *ts;
 
-    if ((lst == NULL) || (*lst == NULL))
-        return;
-    while ((pc = (DUL_PRESENTATIONCONTEXT*) LST_Dequeue(lst)) != NULL) {
-        if (pc->proposedTransferSyntax != NULL) {
-            while ((ts = (DUL_TRANSFERSYNTAX*) LST_Dequeue(&pc->proposedTransferSyntax)) != NULL) {
-                free(ts);
-            }
-            LST_Destroy(&pc->proposedTransferSyntax);
-        }
-        free(pc);
-    }
-    LST_Destroy(lst);
+
+OFCondition
+ASC_createAssociationParameters(T_ASC_Parameters ** params,
+                                long maxReceivePDUSize)
+{
+    /* pass global TCP connection timeout to the real function */
+    return ASC_createAssociationParameters(params, maxReceivePDUSize, dcmConnectionTimeout.get());
 }
+
 
 OFCondition
 ASC_destroyAssociationParameters(T_ASC_Parameters ** params)
 {
 
     /* free the elements in the requested presentation context list */
-    destroyPresentationContextList(
+    destroyDULParamPresentationContextList(
         &((*params)->DULparams.requestedPresentationContext));
 
     /* free the elements in the accepted presentation context list */
-    destroyPresentationContextList(
+    destroyDULParamPresentationContextList(
         &((*params)->DULparams.acceptedPresentationContext));
 
     /* free DUL parameters */
@@ -405,12 +392,12 @@ ASC_setAPTitles(T_ASC_Parameters * params,
 
 OFCondition
 ASC_getAPTitles(T_ASC_Parameters * params,
-    char* callingAPTitle,
-    size_t callingAPTitleSize,
-    char* calledAPTitle,
-    size_t calledAPTitleSize,
-    char* respondingAPTitle,
-    size_t respondingAPTitleSize)
+                char* callingAPTitle,
+                size_t callingAPTitleSize,
+                char* calledAPTitle,
+                size_t calledAPTitleSize,
+                char* respondingAPTitle,
+                size_t respondingAPTitleSize)
 {
     if (callingAPTitle)
         OFStandard::strlcpy(callingAPTitle, params->DULparams.callingAPTitle, callingAPTitleSize);
@@ -474,14 +461,57 @@ ASC_getRejectParameters(T_ASC_Parameters * params,
 {
     int reason;
     if (rejectParameters) {
-        rejectParameters->result =
-            (T_ASC_RejectParametersResult) params->DULparams.result;
-        rejectParameters->source =
-            (T_ASC_RejectParametersSource) params->DULparams.resultSource;
+
+        switch (params->DULparams.result)
+        {
+          case ASC_RESULT_REJECTEDPERMANENT:
+          case ASC_RESULT_REJECTEDTRANSIENT:
+            rejectParameters->result =
+              (T_ASC_RejectParametersResult) params->DULparams.result;
+            break;
+          default:
+            DCMNET_ERROR("Received invalid A-ASSOCIATE-RJ reject result 0x" << STD_NAMESPACE hex << STD_NAMESPACE setfill('0')
+              << STD_NAMESPACE setw(4) << params->DULparams.result << ", using default.");
+            rejectParameters->result = ASC_RESULT_REJECTEDPERMANENT;
+            break;
+        }
+
+        switch (params->DULparams.resultSource)
+        {
+          case ASC_SOURCE_SERVICEUSER:
+          case ASC_SOURCE_SERVICEPROVIDER_ACSE_RELATED:
+          case ASC_SOURCE_SERVICEPROVIDER_PRESENTATION_RELATED:
+            rejectParameters->source =
+                (T_ASC_RejectParametersSource) params->DULparams.resultSource;
+            break;
+          default:
+            DCMNET_ERROR("Received invalid A-ASSOCIATE-RJ reject source 0x" << STD_NAMESPACE hex << STD_NAMESPACE setfill('0')
+              << STD_NAMESPACE setw(4) << params->DULparams.resultSource << ", using default.");
+            rejectParameters->source = ASC_SOURCE_SERVICEUSER;
+            break;
+        }
 
         reason = params->DULparams.diagnostic |
             ((params->DULparams.resultSource & 0xff) << 8);
-        rejectParameters->reason = (T_ASC_RejectParametersReason) reason;
+
+        switch (reason)
+        {
+          case ASC_REASON_SU_NOREASON:
+          case ASC_REASON_SU_APPCONTEXTNAMENOTSUPPORTED:
+          case ASC_REASON_SU_CALLINGAETITLENOTRECOGNIZED:
+          case ASC_REASON_SU_CALLEDAETITLENOTRECOGNIZED:
+          case ASC_REASON_SP_ACSE_NOREASON:
+          case ASC_REASON_SP_ACSE_PROTOCOLVERSIONNOTSUPPORTED:
+          case ASC_REASON_SP_PRES_TEMPORARYCONGESTION:
+          case ASC_REASON_SP_PRES_LOCALLIMITEXCEEDED:
+            rejectParameters->reason = (T_ASC_RejectParametersReason) reason;
+            break;
+          default:
+            DCMNET_ERROR("Received invalid A-ASSOCIATE-RJ reject reason 0x" << STD_NAMESPACE hex << STD_NAMESPACE setfill('0')
+              << STD_NAMESPACE setw(4) << reason << ", using default.");
+            rejectParameters->reason = ASC_REASON_SU_NOREASON;
+            break;
+        }
     }
     return EC_Normal;
 }
@@ -743,7 +773,7 @@ ASC_getPresentationContext(T_ASC_Parameters * params,
     int count = 0;
 
     /* make the presentation context structure clean */
-    bzero((char*)presentationContext, sizeof(*presentationContext));
+    memset((char*)presentationContext, 0, sizeof(*presentationContext));
 
     if (params->DULparams.requestedPresentationContext == NULL)
     {
@@ -804,7 +834,7 @@ ASC_getPresentationContext(T_ASC_Parameters * params,
         transfer = (DUL_TRANSFERSYNTAX*) LST_Next(l);
     }
 
-    presentationContext->transferSyntaxCount = count;
+    presentationContext->transferSyntaxCount = OFstatic_cast(unsigned char, count);
 
     return EC_Normal;
 }
@@ -911,7 +941,7 @@ ASC_refusePresentationContext(
     if (proposedContext == NULL) return ASC_BADPRESENTATIONCONTEXTID;
 
     /* we want to mark this proposed context as being refused */
-    proposedContext->result = resultReason;
+    proposedContext->result = OFstatic_cast(unsigned char, resultReason);
 
     acceptedContext = findPresentationContextID(
                               params->DULparams.acceptedPresentationContext,
@@ -919,7 +949,7 @@ ASC_refusePresentationContext(
 
     if (acceptedContext != NULL) {
         /* it is already in the list, mark it as refused */
-        acceptedContext->result = resultReason;
+        acceptedContext->result = OFstatic_cast(unsigned char, resultReason);
         OFStandard::strlcpy(acceptedContext->abstractSyntax,
                proposedContext->abstractSyntax, sizeof(acceptedContext->abstractSyntax));
         /* we must send back a transfer syntax even though this
@@ -943,7 +973,7 @@ ASC_refusePresentationContext(
         cond = DUL_MakePresentationCtx(
             &acceptedContext,
             DUL_SC_ROLE_DEFAULT, DUL_SC_ROLE_DEFAULT,
-            presentationContextID, resultReason,
+            presentationContextID, OFstatic_cast(unsigned char, resultReason),
             proposedContext->abstractSyntax,
             UID_LittleEndianImplicitTransferSyntax, NULL);
         if (cond.bad()) return cond;
@@ -1002,7 +1032,7 @@ ASC_findAcceptedPresentationContext(
     presentationContext->proposedRole = dulRole2ascRole(pc->proposedSCRole);
     presentationContext->acceptedRole = dulRole2ascRole(pc->acceptedSCRole);
 
-    presentationContext->transferSyntaxCount = count;
+    presentationContext->transferSyntaxCount = OFstatic_cast(unsigned char, count);
     OFStandard::strlcpy(presentationContext->acceptedTransferSyntax, pc->acceptedTransferSyntax, sizeof(DIC_UI));
 
     return EC_Normal;
@@ -1370,7 +1400,7 @@ void ASC_getCopyOfIdentResponse(T_ASC_Parameters * params,
 OFCondition ASC_setIdentAC(
     T_ASC_Parameters * params,
     const char* response,
-    const Uint16& length )
+    const Uint16 length )
 {
   if (params == NULL)
     return ASC_NULLKEY;
@@ -1706,8 +1736,7 @@ ASC_destroyAssociation(T_ASC_Association ** association)
     }
 
     if ((*association)->params != NULL) {
-        cond = ASC_destroyAssociationParameters(&(*association)->params);
-        if (cond.bad()) return cond;
+        ASC_destroyAssociationParameters(&(*association)->params);
     }
 
     if ((*association)->sendPDVBuffer != NULL)
@@ -1737,7 +1766,7 @@ ASC_receiveAssociation(T_ASC_Network * network,
     int retrieveRawPDU = 0;
     if (associatePDU && associatePDUlength) retrieveRawPDU = 1;
 
-    OFCondition cond = ASC_createAssociationParameters(&params, maxReceivePDUSize);
+    OFCondition cond = ASC_createAssociationParameters(&params, maxReceivePDUSize, dcmConnectionTimeout.get());
     if (cond.bad()) return cond;
 
     cond = ASC_setTransportLayerType(params, useSecureLayer);
@@ -1753,7 +1782,7 @@ ASC_receiveAssociation(T_ASC_Network * network,
         ASC_destroyAssociationParameters(&params);
         return EC_MemoryExhausted;
     }
-    bzero((char*)*assoc, sizeof(**assoc));
+    memset((char*)*assoc, 0, sizeof(**assoc));
 
     (*assoc)->params = params;
     (*assoc)->nextMsgID = 1;
@@ -1890,7 +1919,7 @@ ASC_requestAssociation(T_ASC_Network * network,
 
     *assoc = (T_ASC_Association *) malloc(sizeof(**assoc));
     if (*assoc == NULL) return EC_MemoryExhausted;
-    bzero((char*)*assoc, sizeof(**assoc));
+    memset((char*)*assoc, 0, sizeof(**assoc));
 
     (*assoc)->params = params;
     (*assoc)->nextMsgID = 1;
@@ -2130,7 +2159,6 @@ ASC_dropSCPAssociation(T_ASC_Association * association, int timeout)
 }
 
 
-
 OFCondition
 ASC_dropAssociation(T_ASC_Association * association)
 {
@@ -2142,6 +2170,16 @@ ASC_dropAssociation(T_ASC_Association * association)
     return cond;
 }
 
+
+OFCondition
+ASC_closeTransportConnection(T_ASC_Association * association)
+{
+    /* if already dead don't worry */
+    if (association == NULL) return EC_Normal;
+    if (association->DULassociation == NULL) return EC_Normal;
+
+    return DUL_CloseTransportConnection(&association->DULassociation);
+}
 
 
 OFCondition
@@ -2215,4 +2253,24 @@ ASC_dumpConnectionParameters(T_ASC_Association *association, STD_NAMESPACE ostre
     OFString str;
     ASC_dumpConnectionParameters(str, association);
     outstream << str << OFendl;
+}
+
+void
+destroyDULParamPresentationContextList(LST_HEAD ** lst)
+{
+    DUL_PRESENTATIONCONTEXT *pc;
+    DUL_TRANSFERSYNTAX *ts;
+
+    if ((lst == NULL) || (*lst == NULL))
+        return;
+    while ((pc = (DUL_PRESENTATIONCONTEXT*) LST_Dequeue(lst)) != NULL) {
+        if (pc->proposedTransferSyntax != NULL) {
+            while ((ts = (DUL_TRANSFERSYNTAX*) LST_Dequeue(&pc->proposedTransferSyntax)) != NULL) {
+                free(ts);
+            }
+            LST_Destroy(&pc->proposedTransferSyntax);
+        }
+        free(pc);
+    }
+    LST_Destroy(lst);
 }

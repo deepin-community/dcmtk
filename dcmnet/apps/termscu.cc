@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2005-2017, OFFIS e.V.
+ *  Copyright (C) 2005-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -23,12 +23,6 @@
 // ----------------------------------------------------------------------------
 
 #include "dcmtk/config/osconfig.h"
-
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CSTDARG
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/ofstd/ofcmdln.h"
 #include "dcmtk/ofstd/ofconapp.h"
@@ -165,7 +159,7 @@ int main( int argc, char *argv[] )
   }
 
   // initialize asscociation parameters
-  cond = ASC_createAssociationParameters( &params, opt_maxReceivePDULength );
+  cond = ASC_createAssociationParameters( &params, opt_maxReceivePDULength, dcmConnectionTimeout.get());
   if( cond.bad() )
   {
     OFLOG_FATAL(termscuLogger, DimseCondition::dump(temp_str, cond));

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1998-2019, OFFIS e.V.
+ *  Copyright (C) 1998-2021, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -25,13 +25,8 @@
 #ifdef WITH_OPENSSL
 
 #include "dcmtk/dcmsign/siprivat.h"
-#include "dcmtk/dcmsign/sirsa.h"
-#include "dcmtk/dcmsign/sidsa.h"
-#include "dcmtk/dcmsign/siecdsa.h"
+#include "dcmtk/dcmsign/sipkey.h"
 #include "dcmtk/dcmsign/sicert.h"
-
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
 
 BEGIN_EXTERN_C
 #include <openssl/evp.h>
@@ -39,7 +34,7 @@ BEGIN_EXTERN_C
 #include <openssl/pem.h>
 END_EXTERN_C
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifndef HAVE_OPENSSL_PROTOTYPE_EVP_PKEY_ID
 #define EVP_PKEY_id(key) key->type
 #endif
 
@@ -154,29 +149,7 @@ E_KeyType SiPrivateKey::getKeyType() const
 
 SiAlgorithm *SiPrivateKey::createAlgorithmForPrivateKey()
 {
-  if (pkey)
-  {
-    switch(EVP_PKEY_type(EVP_PKEY_id(pkey)))
-    {
-      case EVP_PKEY_RSA:
-        return new SiRSA(EVP_PKEY_get1_RSA(pkey));
-        /* break; */
-      case EVP_PKEY_DSA:
-        return new SiDSA(EVP_PKEY_get1_DSA(pkey));
-        /* break; */
-      case EVP_PKEY_EC:
-#ifdef OPENSSL_NO_EC
-        return new SiECDSA(NULL);
-#else
-        return new SiECDSA(EVP_PKEY_get1_EC_KEY(pkey));
-#endif
-        /* break; */
-      case EVP_PKEY_DH:
-      default:
-        /* nothing */
-        break;
-    }
-  }
+  if (pkey) return new SiPKEY(pkey, OFFalse);
   return NULL;
 }
 

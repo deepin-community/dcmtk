@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2016-2019, Open Connections GmbH
+ *  Copyright (C) 2016-2023, Open Connections GmbH
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation are maintained by
@@ -988,7 +988,7 @@ OFCondition DPMParametricMapIOD::decompress(DcmDataset& dset)
   // If the original transfer syntax could have been lossy, print warning
   if (dset.hasRepresentation(EXS_LittleEndianExplicit, NULL))
   {
-    if ( xfer.isEncapsulated() && (xfer.getXfer() != EXS_RLELossless) && (xfer.getXfer() != EXS_DeflatedLittleEndianExplicit) )
+    if ( xfer.isEncapsulated() && (xfer != EXS_RLELossless) && (xfer != EXS_DeflatedLittleEndianExplicit) )
     {
       DCMPMAP_WARN("Dataset has been compressed using a (possibly) lossy compression scheme (ignored)");
     }
@@ -997,14 +997,14 @@ OFCondition DPMParametricMapIOD::decompress(DcmDataset& dset)
   else if (xfer.isEncapsulated())
   {
     // RLE compression is fine (truly lossless). Deflated is handled internally by DCMTK.
-    if (xfer.getXfer() == EXS_RLELossless)
+    if (xfer == EXS_RLELossless)
     {
       DCMPMAP_DEBUG("DICOM file is RLE-compressed, converting to uncompressed transfer syntax first");
       result = DcmIODUtil::decompress(dset);
     }
     else // We do not accept any transfer syntax that could be lossy compressed
     {
-      DCMPMAP_ERROR("Transfer syntax " << DcmXfer(xfer).getXferName() << " uses lossy compression, not supported for Parametric Map objects!");
+      DCMPMAP_ERROR("Transfer syntax " << xfer.getXferName() << " uses lossy compression, not supported for Parametric Map objects!");
       result = IOD_EC_CannotDecompress;
     }
   }
@@ -1016,6 +1016,25 @@ template class DPMParametricMapIOD::Frames<Uint16>;
 template class DPMParametricMapIOD::Frames<Sint16>;
 template class DPMParametricMapIOD::Frames<Float32>;
 template class DPMParametricMapIOD::Frames<Float64>;
+
+#ifdef __SUNPRO_CC
+// the SunPro compiler would complain that the DCMTK_DCMPMAP_EXPORT attribute cannot be applied
+// to an explicit template instantiation.
+
+// Helper macro to not to write the same thing multiple times
+#define INSTANTIATE_CREATE(T) template OFvariant<OFCondition,DPMParametricMapIOD>\
+DPMParametricMapIOD::create<T >(const OFString& modality,\
+                                const OFString& seriesNumber,\
+                                const OFString& instanceNumber,\
+                                const Uint16 rows,\
+                                const Uint16 columns,\
+                                const IODEnhGeneralEquipmentModule::EquipmentInfo& equipmentInfo,\
+                                const ContentIdentificationMacro& contentIdentification,\
+                                const OFString& imageFlavor,\
+                                const OFString& derivedPixelContrast,\
+                                const DPMTypes::ContentQualification& contentQualification)
+
+#else
 
 // Helper macro to not to write the same thing multiple times
 #define INSTANTIATE_CREATE(T) template DCMTK_DCMPMAP_EXPORT OFvariant<OFCondition,DPMParametricMapIOD>\
@@ -1029,6 +1048,8 @@ DPMParametricMapIOD::create<T >(const OFString& modality,\
                                 const OFString& imageFlavor,\
                                 const OFString& derivedPixelContrast,\
                                 const DPMTypes::ContentQualification& contentQualification)
+
+#endif
 
 // Instantiate all four permitted create() methods
 INSTANTIATE_CREATE(IODImagePixelModule<Uint16>);

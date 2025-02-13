@@ -69,7 +69,7 @@ License: OFFIS
  include the three paragraphs of this copyright notice.
 
 Files: dcmnet/include/dcmtk/dcmnet/dul.h
-       dcmnet/libsrc/dulstruc.h
+       dcmnet/include/dcmtk/dcmnet/dulstruc.h
        dcmnet/libsrc/dul.cc
        dcmnet/libsrc/dulconst.cc
        dcmnet/libsrc/dulpriv.h
@@ -77,10 +77,11 @@ Files: dcmnet/include/dcmtk/dcmnet/dul.h
        dcmnet/libsrc/dulfsm.h
        dcmnet/libsrc/dulfsm.cc
        dcmnet/libsrc/dulparse.cc
-Copyright: 1993, RSNA and Washington University
+Copyright: 1993, 1994 RSNA and Washington University
+           1994-2021, OFFIS e.V.
 License: RSNA
  The software and supporting documentation for the Radiological
- Society of North America (RSNA) 1993 Digital Imaging and
+ Society of North America (RSNA) 1993, 1994 Digital Imaging and
  Communications in Medicine (DICOM) Demonstration were developed
  at the
          Electronic Radiology Laboratory
@@ -335,7 +336,7 @@ License: GPL-2.0+
  GNU General Public License for more details.
  .
  You should have received a copy of the GNU General Public License
- along with this library; see the file COPYING,  if not, see 
+ along with this library; see the file COPYING,  if not, see
  <http://www.gnu.org/licenses/>.
  .
  On Debian systems, the complete text of the GNU General Public License
@@ -384,33 +385,30 @@ License: dcmtk-or-AFPL
 
 Files: dcmrt/*
 Copyright: 2008-2012, OFFIS e.V. and ICSMED AG, Oldenburg, Germany
-           2013-2017, J. Riesmeier, Oldenburg, Germany
+           2013-2021, J. Riesmeier, Oldenburg, Germany
 License: BSD-3-clause-Riesmeier
 
 Files: dcmsr/include/dcmtk/dcmsr/dsrdncsr.h
  dcmsr/include/dcmtk/dcmsr/dsrsaecc.h
  dcmsr/libsrc/dsrdncsr.cc
  dcmsr/libsrc/dsrsaecc.cc
- dcmsr/include/dcmtk/dcmsr/cmr/tid1409m.h
  dcmsr/include/dcmtk/dcmsr/cmr/tid1419m.h
  dcmsr/include/dcmtk/dcmsr/cmr/tid1501.h
  dcmsr/include/dcmtk/dcmsr/cmr/tid15def.h
  dcmsr/include/dcmtk/dcmsr/cmr/tid300.h
- dcmsr/include/dcmtk/dcmsr/cmr/dsrdnflt.h
- dcmsr/include/dcmtk/dcmsr/cmr/dsritcsr.h
- dcmsr/include/dcmtk/dcmsr/cmr/dsrprdcc.h
+ dcmsr/include/dcmtk/dcmsr/dsrdnflt.h
+ dcmsr/include/dcmtk/dcmsr/dsritcsr.h
+ dcmsr/include/dcmtk/dcmsr/dsrprdcc.h
  dcmsr/include/dcmtk/dcmsr/dsrpficc.h
  dcmsr/libsrc/dsrpficc.cc
  dcmsr/libsrc/dsrplicc.cc
- dcmsr/libcmr/tid1409m.cc
  dcmsr/libcmr/tid1419m.cc
  dcmsr/libcmr/tid1501.cc
  dcmsr/libcmr/tid15def.cc
- dcmsr/libcmr/tid300cc.cc
- dcmsr/libcmr/dsrdnflt.cc
- dcmsr/libcmr/dsritcsr.cc
- dcmsr/libcmr/dsrprdcc.cc
-Copyright: 2016-2017, J. Riesmeier, Oldenburg, Germany
+ dcmsr/libsrc/dsrdnflt.cc
+ dcmsr/libsrc/dsritcsr.cc
+ dcmsr/libsrc/dsrprdcc.cc
+Copyright: 2016-2021, J. Riesmeier, Oldenburg, Germany
 License: OFFISeV
 
 Files: dcmect/include/dcmtk/dcmect/def.h
@@ -481,8 +479,8 @@ License: Apache-2.0
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  See the License for the specific language governing permissions and
  limitations under the License.
- . 
- On Debian GNU/Linux systems you can find this license under 
+ .
+ On Debian GNU/Linux systems you can find this license under
  /usr/share/common-licenses/Apache-2.0
 
 License: BSD-3-clause

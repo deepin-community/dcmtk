@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2009-2014, OFFIS e.V.
+ *  Copyright (C) 2009-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -35,7 +35,6 @@ class DCMTK_I2D_EXPORT I2DBmpSource : public I2DImgSource
 public:
 
   /** Constructor, initializes member variables
-   *  @return none
    */
   I2DBmpSource();
 
@@ -87,15 +86,19 @@ public:
    *  @param srcLossyComprMethod - [out] Unused parameter
    *  @return EC_Normal if information is available, error otherwise
    */
+#ifdef DOXYGEN
   virtual OFCondition getLossyComprInfo(OFBool& srcEncodingLossy,
-                                        OFString& /* srcLossyComprMethod */) const
+                                        OFString& srcLossyComprMethod) const
+#else
+  virtual OFCondition getLossyComprInfo(OFBool& srcEncodingLossy,
+                                        OFString& /* srcLossyComprMethod */ ) const
+#endif
   {
     srcEncodingLossy = OFFalse;
     return EC_Normal;
   }
 
   /** Destructor, frees some memory.
-   *  @return none
    */
   virtual ~I2DBmpSource();
 
@@ -108,7 +111,6 @@ protected:
   OFCondition openFile(const OFString& filename);
 
   /** Closes BMP file.
-   *  @return none
    */
   void closeFile();
 
@@ -137,10 +139,12 @@ protected:
 
   /** Read the color palette from the file.
    *  @param colors - [in] number of colors to read
+   *  @param isMonochrome - [out] true if the palette is monochrome
    *  @param palette - [out] the read color palette is stored here
    *  @return EC_Normal, if successful, error otherwise
    */
   OFCondition readColorPalette(Uint16 colors,
+                               OFBool& isMonochrome,
                                Uint32*& palette);
 
   /** Read the bitmap data.
@@ -149,6 +153,7 @@ protected:
    *  @param height - [in] height of the image in pixel
    *  @param bpp - [in] Image's bits per pixel.
    *  @param isTopDown - [in] If true, this is a top down bitmap
+   *  @param isMonochrome - [in] If true, this is a monochrome palette color image
    *  @param colors - [in] Number of color palette entries
    *  @param palette - [in] Color palette
    *  @param pixData - [out] Image data
@@ -159,6 +164,7 @@ protected:
                              const Uint16 height,
                              const Uint16 bpp,
                              const OFBool isTopDown,
+                             const OFBool isMonochrome,
                              const Uint16 colors,
                              const Uint32* palette,
                              char*& pixData /*out*/,
@@ -192,6 +198,7 @@ protected:
    *  @param bpp - [in] The number of bits per pixel.
    *  @param colors - [in] The number of entries in the color palette.
    *  @param palette - [in] The color palette to use.
+   *  @param isMonochrome - [in] If true, this is a monochrome palette color image
    *  @param pixData - [out] The buffer to write the data to (in "RGB" format).
    *  @return EC_Normal, if successful, error otherwise
    */
@@ -200,6 +207,7 @@ protected:
                                    const int bpp,
                                    const Uint16 colors,
                                    const Uint32* palette,
+                                   const OFBool isMonochrome,
                                    char *pixData /*out*/) const;
 
   /** Read 4 bytes from the byte stream and interpret it as a signed integer.

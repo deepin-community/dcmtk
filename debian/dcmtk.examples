@@ -1,2 +1,2 @@
-debian/tmp/usr/share/dcmtk/wlistdb
-debian/tmp/usr/share/dcmtk/wlistqry
+usr/share/dcmtk/wlistdb
+usr/share/dcmtk/wlistqry

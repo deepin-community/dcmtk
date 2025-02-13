@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2020, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -95,9 +95,9 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      *          cannot be casted to this object type or both objects are of
      *          different VR (i.e. the DcmEVR returned by the element's ident()
      *          call are different).
-     *          1 if either this element has more components than the rhs element, or
-     *          if the first component that does not match is greater in this object than
-     *          in rhs object.
+     *          1 if either this element has more components than the rhs
+     *          element, or if the first component that does not match is
+     *          greater in this object than in rhs object.
      */
     virtual int compare(const DcmItem& rhs) const;
 
@@ -448,8 +448,8 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      *  that is, DcmItem and DcmSequenceOfItems. It returns a pointer to the
      *  next object in the list AFTER the given object. If the caller passes NULL,
      *  a pointer to the first object in the list is returned. If the given object
-     *  is not found, the given object is the last one in the list or the list is empty,
-     *  NULL is returned.
+     *  is not found, the given object is the last one in the list or the list is
+     *  empty, NULL is returned.
      *  @param obj pointer to one object in the container; we are looking for the
      *    next entry after this one. NULL if looking for the first entry.
      *  @return pointer to next object in container or NULL if not found
@@ -1059,7 +1059,8 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      *  Applicable to the following VRs: AE, AS, AT, CS, DA, DS, DT, FL, FD, IS, LO, LT, OB, OD, OF,
      *  OL, OV, OW, PN, SH, SL, SS, ST, SV, TM, UC, UI, UL, UR, US, UT, UV.
      *  @param tag DICOM tag specifying the attribute to be created
-     *  @param value string value to be set for the new element (might be empty or NULL)
+     *  @param value string value to be set for the new element (might be empty or NULL).  The format
+     *    of the string value is specified by the putString() method of the corresponding VR class.
      *  @param replaceOld flag indicating whether to replace an existing element or not
      *  @return EC_Normal upon success, an error code otherwise.
      */
@@ -1073,7 +1074,8 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      *  Please note that since the length of the string has to be specified explicitly, the string
      *  can contain more than one NULL byte.
      *  @param tag DICOM tag specifying the attribute to be created
-     *  @param value string value to be set for the new element (might be empty or NULL)
+     *  @param value string value to be set for the new element (might be empty or NULL).  The format
+     *    of the string value is specified by the putString() method of the corresponding VR class.
      *  @param length length of the string (number of characters without the trailing NULL byte)
      *  @param replaceOld flag indicating whether to replace an existing element or not
      *  @return EC_Normal upon success, an error code otherwise.
@@ -1087,7 +1089,8 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      *  Applicable to the following VRs: AE, AS, AT, CS, DA, DS, DT, FL, FD, IS, LO, LT, OB, OD, OF,
      *  OL, OV, OW, PN, SH, SL, SS, ST, SV, TM, UC, UI, UL, UR, US, UT, UV.
      *  @param tag DICOM tag specifying the attribute to be created
-     *  @param value value to be set for the new element (might be empty)
+     *  @param value string value to be set for the new element (might be empty).  The format of the
+     *    string value is specified by the putOFStringArray() method of the corresponding VR class.
      *  @param replaceOld flag indicating whether to replace an existing element or not
      *  @return EC_Normal upon success, an error code otherwise.
      */
@@ -1204,6 +1207,19 @@ class DCMTK_DCMDATA_EXPORT DcmItem
                                    const OFBool replaceOld = OFTrue);
 
     /** create a new element, put specified value to it and insert the element into the dataset/item.
+     *  Applicable to the following VRs: SL.
+     *  @param tag DICOM tag specifying the attribute to be created
+     *  @param value value to be set for the new element
+     *  @param count number of values (not bytes!) to be copied from 'value'
+     *  @param replaceOld flag indicating whether to replace an existing element or not
+     *  @return EC_Normal upon success, an error code otherwise.
+     */
+    OFCondition putAndInsertSint32Array(const DcmTag &tag,
+                                        const Sint32 *value,
+                                        const unsigned long count,
+                                        const OFBool replaceOld = OFTrue);
+
+    /** create a new element, put specified value to it and insert the element into the dataset/item.
      *  Applicable to the following VRs: FL, OF.
      *  @param tag DICOM tag specifying the attribute to be created
      *  @param value value to be set for the new element
@@ -1305,8 +1321,8 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      *  in the dictionary) will result in a DcmElement instance of derived type
      *  DcmOtherByteOtherWord.
      *  @param tag attribute tag of the element to be created
-     *  @param privateCreator private creator of the element, if element tag
-     *    is private (default: NULL, i.e. non-private DICOM standard tag)
+     *  @param privateCreator private creator identifier of the element, if element
+     *    tag is private (default: NULL, i.e. non-private DICOM standard tag)
      *  @return pointer to newly created element upon success, NULL pointer otherwise
      *
      */
@@ -1320,8 +1336,8 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      *  @param newElement pointer to newly created element returned in this parameter
      *    upon success, NULL pointer otherwise
      *  @param tag attribute tag of the element to be created
-     *  @param privateCreator private creator of the element, if element tag
-     *    is private (default: NULL, i.e. non-private DICOM standard tag)
+     *  @param privateCreator private creator identifier of the element, if element
+     *    tag is private (default: NULL, i.e. non-private DICOM standard tag)
      *  @return EC_Normal upon success, an error code otherwise
      */
     static OFCondition newDicomElement(DcmElement *&newElement,
@@ -1448,8 +1464,8 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      *  @param tag attribute tag of the element to be created. VR of tag may be
      *    updated within the method.
      *  @param length attribute value length of the element to be created
-     *  @param privateCreatorCache cache object for private creator strings in
-     *    the current dataset
+     *  @param privateCreatorCache cache object for private creator elements
+     *    in the current dataset
      *  @param readAsUN flag indicating whether parser is currently handling
      *    UN element that must be read in implicit VR little endian; updated
      *    upon return
@@ -1484,7 +1500,7 @@ class DCMTK_DCMDATA_EXPORT DcmItem
      */
     static OFBool foundVR(const Uint8* atposition);
 
-    /// cache for private creator tags and names
+    /// cache for private creator tags and identifiers
     DcmPrivateTagCache privateCreatorCache;
 };
 

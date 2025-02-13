@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2001-2020, OFFIS e.V.
+ *  Copyright (C) 2001-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -21,10 +21,6 @@
 
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
-
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/dcmdata/dctk.h"          /* for various dcmdata headers */
 #include "dcmtk/dcmdata/cmdlnarg.h"      /* for prepareCmdLineArgs */
@@ -111,9 +107,10 @@ int main(int argc, char *argv[])
 
     prepareCmdLineArgs(argc, argv, OFFIS_CONSOLE_APPLICATION);
     cmd.setOptionColumns(LONGCOL, SHORTCOL);
+    cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
 
-    cmd.addParam("dcmfile-in",  "DICOM input filename to be converted");
-    cmd.addParam("dcmfile-out", "DICOM output filename to be written");
+    cmd.addParam("dcmfile-in",  "DICOM input filename to be converted\n(\"-\" for stdin)");
+    cmd.addParam("dcmfile-out", "DICOM output filename to be written\n(\"-\" for stdout)");
 
     cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);
      cmd.addOption("--help",                 "-h",     "print this help text and exit", OFCommandLine::AF_Exclusive);

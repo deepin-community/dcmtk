@@ -11,7 +11,7 @@ if ! getent passwd dcmtk >/dev/null 2>&1; then
     fi
     echo "Adding \`dcmtk' user to system ..."
     adduser --quiet --system --ingroup dcmtk --home /var/lib/dcmtk/db \
-	--shell /bin/sh --disabled-password dcmtk || true
+	--shell /usr/sbin/nologin dcmtk || true
 fi
 
 # work around possible adduser bug, see #119366

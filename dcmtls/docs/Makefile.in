@@ -11,7 +11,7 @@ configdir = @top_srcdir@/@configdir@
 
 include $(configdir)/@common_makefile@
 
-files = ciphers.txt randseed.txt certstor.txt
+files = ciphers.txt randseed.txt
 
 
 all:
@@ -21,6 +21,7 @@ install:
 	for file in $(files); do \
 		$(INSTALL_DATA) $$file $(DESTDIR)$(docdir) ;\
 	done
+
 
 clean:
 	rm -f $(TRASH)

@@ -1,19 +1,5 @@
 # Minimum CMake version required
-cmake_minimum_required(VERSION 2.8.5 FATAL_ERROR)
-
-# As of 2018-12-26 DCMTK has been validated to build with CMake 3.13.2 policies.
-set(DCMTK_MAX_CMAKE_POLICY_VERSION 3.13.2)
-
-# Set and use the newest CMake policies that are validated to work
-# (VERSION_LESS comparison is only defined for CMake 3 and newer)
-if(CMAKE_MAJOR_VERSION LESS 3)
-    set(DCMTK_CMAKE_POLICY_VERSION "${CMAKE_VERSION}")
-elseif(CMAKE_VERSION VERSION_LESS DCMTK_MAX_CMAKE_POLICY_VERSION)
-    set(DCMTK_CMAKE_POLICY_VERSION "${CMAKE_VERSION}")
-else()
-    set(DCMTK_CMAKE_POLICY_VERSION "${DCMTK_MAX_CMAKE_POLICY_VERSION}")
-endif()
-cmake_policy(VERSION "${DCMTK_CMAKE_POLICY_VERSION}")
+cmake_minimum_required(VERSION 3.0.0...3.27.3 FATAL_ERROR)
 
 # Declare project
 project(DCMTK)
@@ -23,11 +9,19 @@ project(DCMTK)
 #-----------------------------------------------------------------------------
 
 # Modules to be built
-set(DCMTK_MODULES ofstd oflog dcmdata dcmimgle
+set(DCMTK_MODULES ofstd oflog oficonv dcmdata dcmimgle
   dcmimage dcmjpeg dcmjpls dcmtls dcmnet dcmsr
   dcmsign dcmwlm dcmqrdb dcmpstat dcmrt dcmiod dcmfg
   dcmseg dcmtract dcmpmap dcmect
   CACHE STRING "List of modules that should be built.")
+
+# Provide an interface target to elegantly include the config directory
+add_library(config INTERFACE)
+target_include_directories(config INTERFACE
+  $<BUILD_INTERFACE:${DCMTK_BINARY_DIR}/config/include>
+  $<INSTALL_INTERFACE:include>
+)
+install(TARGETS config EXPORT DCMTKTargets)
 
 # Include directories
 set(DCMTK_INCLUDE_DIR "${DCMTK_BINARY_DIR}/config/include")
@@ -74,9 +68,9 @@ else()
 endif()
 # Add a target to run the unit tests in exhaustive mode
 add_custom_target("test-exhaustive"
-    COMMAND "${CMAKE_COMMAND}" "-DCONFIG=${DCMTK_CONFIG_GENERATOR_EXPRESSION}" "-P"
-        "${DCMTK_SOURCE_DIR}/CMake/CTest/dcmtkCTestRunExhaustive.cmake"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+  COMMAND "${CMAKE_COMMAND}" "-DCONFIG=${DCMTK_CONFIG_GENERATOR_EXPRESSION}" "-P"
+          "${DCMTK_SOURCE_DIR}/CMake/CTest/dcmtkCTestRunExhaustive.cmake"
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
 #-----------------------------------------------------------------------------
@@ -101,63 +95,24 @@ install(FILES "${DCMTK_BINARY_DIR}/config/include/dcmtk/config/osconfig.h"
 
 # Install DCMTK's general documentation files
 install(FILES ANNOUNCE COPYRIGHT CREDITS FAQ HISTORY VERSION
-        DESTINATION "${CMAKE_INSTALL_DOCDIR}"
+        DESTINATION "${CMAKE_INSTALL_FULL_DOCDIR}"
         COMPONENT doc)
-install(DIRECTORY docs/ DESTINATION "${CMAKE_INSTALL_DOCDIR}"
+install(DIRECTORY docs/ DESTINATION "${CMAKE_INSTALL_FULL_DOCDIR}"
         COMPONENT doc FILES_MATCHING PATTERN "CHANGES.???")
 
 #-----------------------------------------------------------------------------
 # Create an install configuration files for external projects
 #-----------------------------------------------------------------------------
-#
-# DCMTKTargets.cmake will contain list of executables and libraries produced
-# DCMTKConfigVersion.cmake will contain DCMTK version information
-# DCMTKConfig.cmake will contain options used to build DCMTK
-#
-# All three files are created within the build tree's main directory (handled in
-# CMake/GenerateCMakeExports.cmake, and are installed to locations (OS-specific
-# under the main install dir (handled directly below).
 
-# Only create fully-fledged CMake export files if we have the related commands
-include(CMake/CheckCMakeCommandExists.cmake)
-include(CMakePackageConfigHelpers OPTIONAL)
-CHECK_CMAKE_COMMAND_EXISTS("CONFIGURE_PACKAGE_CONFIG_FILE")
-CHECK_CMAKE_COMMAND_EXISTS("WRITE_BASIC_PACKAGE_VERSION_FILE")
-
-if(HAVE_CONFIGURE_PACKAGE_CONFIG_FILE AND HAVE_WRITE_BASIC_PACKAGE_VERSION_FILE)
-
-  # Create and configure CMake export files
-  include(CMake/GenerateCMakeExports.cmake)
-
-  # ${DCMTK_INSTALL_CONFIG} and ${DCMTK_CONFIG_VERSION} are
-  # defined within CMake/GenerateCMakeExports.cmake.
-  # Install DCMTKTargets.cmake to install tree
-  install(EXPORT DCMTKTargets FILE DCMTKTargets.cmake
-          DESTINATION "${DCMTK_INSTALL_CMKDIR}" COMPONENT cmake)
-
-  # Install DCMTKConfig.cmake and DCMTKConfigVersion.cmake
-  install(FILES "${DCMTK_INSTALL_CONFIG}" "${DCMTK_CONFIG_VERSION}"
-          DESTINATION "${DCMTK_INSTALL_CMKDIR}" COMPONENT cmake)
-
-else()
-
-  # Warning that we use old "configure_file" command
-  message(STATUS "Warning: Using old configure_file() mechanism to produce DCMTKConfig.cmake")
-
-  # Actually configure file
-  configure_file("${DCMTK_SOURCE_DIR}/CMake/DCMTKConfig.old_cmake.in"
-                 "${DCMTK_BINARY_DIR}/DCMTKConfig.cmake" @ONLY)
-
-  # Install DCMTKConfig.cmake and DCMTKConfigVersion.cmake
-  install(FILES "${DCMTK_BINARY_DIR}/DCMTKConfig.cmake" "${DCMTK_BINARY_DIR}/DCMTKConfigVersion.cmake"
-          DESTINATION "${DCMTK_INSTALL_CMKDIR}"
-          COMPONENT cmake)
-
+if(NOT DCMTK_NO_EXPORT)
+  dcmtk_create_install_exports()
 endif()
 
 #-----------------------------------------------------------------------------
 # Configure files needed for running the unit tests and cleanup
 #-----------------------------------------------------------------------------
+
+set(DCMICONVPATH "${DCMTK_ICONV_DATAFILES}")
 
 if(CMAKE_CROSSCOMPILING)
   if(WIN32)
@@ -177,8 +132,8 @@ if(CMAKE_CROSSCOMPILING)
     get_filename_component(DCMDICTPATH "${DCMDICTPATH}" NAME)
     set(DCMDICTPATH "${ANDROID_TEMPORARY_FILES_LOCATION}/${DCMDICTPATH}")
     foreach(DICTIONARY ${DICTIONARIES})
-        get_filename_component(FILE "${DICTIONARY}" NAME)
-        set(DCMDICTPATH "${DCMDICTPATH}:${ANDROID_TEMPORARY_FILES_LOCATION}/${FILE}")
+      get_filename_component(FILE "${DICTIONARY}" NAME)
+      set(DCMDICTPATH "${DCMDICTPATH}:${ANDROID_TEMPORARY_FILES_LOCATION}/${FILE}")
     endforeach()
     configure_file("${DCMTK_SOURCE_DIR}/CMake/CTest/CTestCustomAndroid.cmake.in"
       "${DCMTK_BINARY_DIR}/CTestCustom.cmake" ESCAPE_QUOTES @ONLY
@@ -195,3 +150,65 @@ else()
     "${DCMTK_RUN_CTEST_SCRIPT}" ESCAPE_QUOTES @ONLY
   )
 endif()
+
+#-----------------------------------------------------------------------------
+# Generate pkgconfig
+#-----------------------------------------------------------------------------
+
+if(DCMTK_WITH_ICONV)
+  # libiconv does not provide a .pc file
+  set(PKGCONF_LIBS_PRIV "${PKGCONF_LIBS_PRIV} ${Iconv_LIBRARY} ${LIBCHARSET_LIBRARY}")
+endif()
+
+if(DCMTK_WITH_ICU)
+  set(PKGCONF_REQ_PRIV "${PKGCONF_REQ_PRIV} icu-uc")
+endif()
+
+if(DCMTK_WITH_LIBXML)
+  set(PKGCONF_REQ_PRIV "${PKGCONF_REQ_PRIV} libxml-2.0")
+endif()
+
+if(DCMTK_WITH_LIBPNG)
+  set(PKGCONF_REQ_PRIV "${PKGCONF_REQ_PRIV} libpng")
+endif()
+
+if(DCMTK_WITH_OPENJPEG)
+  set(PKGCONF_REQ_PRIV "${PKGCONF_REQ_PRIV} libopenjp2")
+endif()
+
+if(DCMTK_WITH_OPENSSL)
+  set(PKGCONF_REQ_PRIV "${PKGCONF_REQ_PRIV} libssl libcrypto")
+endif()
+
+if(DCMTK_WITH_SNDFILE)
+  set(PKGCONF_REQ_PRIV "${PKGCONF_REQ_PRIV} sndfile")
+endif()
+
+if(DCMTK_WITH_TIFF)
+  set(PKGCONF_REQ_PRIV "${PKGCONF_REQ_PRIV} libtiff-4")
+endif()
+
+if(DCMTK_WITH_WRAP)
+  # libwrap does not provide a .pc file
+  set(PKGCONF_LIBS_PRIV "${PKGCONF_LIBS_PRIV} ${WRAP_LIBRARY}")
+endif()
+
+if(DCMTK_WITH_ZLIB)
+  set(PKGCONF_REQ_PRIV "${PKGCONF_REQ_PRIV} zlib")
+endif()
+
+get_property(DCMTK_LIBRARY_TARGETS GLOBAL PROPERTY DCMTK_LIBRARY_TARGETS)
+
+foreach(T ${DCMTK_LIBRARY_TARGETS})
+  set(PKGCONF_LIBS "${PKGCONF_LIBS} -l${T}")
+endforeach()
+
+configure_file(
+  ${DCMTK_SOURCE_DIR}/CMake/dcmtk.pc.in
+  ${DCMTK_BINARY_DIR}/dcmtk.pc
+  @ONLY
+)
+
+install(FILES "${DCMTK_BINARY_DIR}/dcmtk.pc"
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)

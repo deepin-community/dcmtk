@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2001-2018, OFFIS e.V.
+ *  Copyright (C) 2001-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -21,10 +21,6 @@
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/dcmdata/dctk.h"
 #include "dcmtk/dcmdata/cmdlnarg.h"
@@ -105,8 +101,8 @@ int main(int argc, char *argv[])
   cmd.setOptionColumns(LONGCOL, SHORTCOL);
   cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
 
-  cmd.addParam("dcmfile-in",  "DICOM input filename to be converted");
-  cmd.addParam("dcmfile-out", "DICOM output filename");
+  cmd.addParam("dcmfile-in",  "DICOM input filename to be converted\n(\"-\" for stdin)");
+  cmd.addParam("dcmfile-out", "DICOM output filename\n(\"-\" for stdout)");
 
   cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);
    cmd.addOption("--help",                   "-h",     "print this help text and exit", OFCommandLine::AF_Exclusive);
@@ -349,13 +345,13 @@ int main(int argc, char *argv[])
       cmd.beginOptionBlock();
       if (cmd.findOption("--true-lossless"))
       {
-        // true lossless explicitely requested but selected TS denotes lossy process
+        // true lossless explicitly requested but selected TS denotes lossy process
         app.checkDependence("--true-lossless", "--encode-lossless-sv1 or --encode-lossless", lossless);
         opt_trueLossless = OFTrue;
       }
       if (cmd.findOption("--pseudo-lossless"))
       {
-        // pseudo lossless explicitely requested but selected TS denotes lossy process
+        // pseudo lossless explicitly requested but selected TS denotes lossy process
         app.checkDependence("--pseudo-lossless", "--encode-lossless-sv1 or --encode-lossless", lossless);
         opt_trueLossless = OFFalse;
       }

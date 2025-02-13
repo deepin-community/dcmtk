@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2015-2018, Open Connections GmbH
+ *  Copyright (C) 2015-2022, Open Connections GmbH
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation are maintained by
@@ -35,6 +35,7 @@ IODMultiframeDimensionModule::IODMultiframeDimensionModule(OFshared_ptr<DcmItem>
     : IODModule(data, rules)
     , m_DimensionIndexSequence()
     , m_DimensionOrganizationSequence()
+    , m_CheckOnWrite(OFTrue)
 {
     // reset element rules
     resetRules();
@@ -151,6 +152,14 @@ OFCondition IODMultiframeDimensionModule::read(DcmItem& source, const OFBool cle
 OFCondition IODMultiframeDimensionModule::write(DcmItem& destination)
 {
     OFCondition result = EC_Normal;
+    if (m_CheckOnWrite)
+    {
+        result = checkDimensions();
+        if (result.bad())
+        {
+            return result;
+        }
+    }
 
     // Re-create dimension organization data
     createDimensionOrganizationData();
@@ -349,6 +358,16 @@ DcmElement* IODMultiframeDimensionModule::getIndexElement(DcmSequenceOfItems* pe
     return returnValue;
 }
 
+void IODMultiframeDimensionModule::setCheckOnWrite(const OFBool doCheck)
+{
+    m_CheckOnWrite = doCheck;
+}
+
+OFBool IODMultiframeDimensionModule::getCheckOnWrite()
+{
+    return m_CheckOnWrite;
+}
+
 void IODMultiframeDimensionModule::createDimensionOrganizationData()
 {
     // Clear old data
@@ -378,7 +397,7 @@ void IODMultiframeDimensionModule::createDimensionOrganizationData()
             DimensionOrganizationItem* uidItem = new DimensionOrganizationItem();
             if (!uidItem)
             {
-                DCMIOD_ERROR("Memory Exhausted while collecting Dimension Organziation UIDs");
+                DCMIOD_ERROR("Memory Exhausted while collecting Dimension Organization UIDs");
                 return;
             }
             result = uidItem->setDimensionOrganizationUID(newuid);
@@ -540,7 +559,7 @@ OFCondition IODMultiframeDimensionModule::DimensionIndexItem::setFunctionalGroup
         return EC_InternalError;
 
     OFCondition result;
-    Uint16* attrTagArray;
+    Uint16* attrTagArray = NULL;
     result = elem->putTagVal(value);
     if (result.good())
         result = elem->getUint16Array(attrTagArray);
@@ -572,7 +591,7 @@ OFCondition IODMultiframeDimensionModule::DimensionIndexItem::setDimensionIndexP
         return EC_InternalError;
 
     OFCondition result;
-    Uint16* attrTagArray;
+    Uint16* attrTagArray = NULL;
     result = elem->putTagVal(value);
     if (result.good())
         result = elem->getUint16Array(attrTagArray);

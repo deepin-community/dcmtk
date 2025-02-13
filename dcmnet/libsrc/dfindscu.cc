@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2020, OFFIS e.V.
+ *  Copyright (C) 1994-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -23,12 +23,6 @@
 
 #include "dcmtk/dcmnet/dfindscu.h"
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CSTDARG
-#define INCLUDE_CERRNO
-#include "dcmtk/ofstd/ofstdinc.h"
 #include "dcmtk/dcmnet/diutil.h"
 #include "dcmtk/dcmdata/dcfilefo.h"
 #include "dcmtk/dcmdata/dcdicent.h"
@@ -153,23 +147,28 @@ void DcmFindSCUDefaultCallback::callback(
                 {
                     OFCondition cond = EC_Normal;
                     size_t writeFlags = 0;
+                    OFString csetString;
                     DCMNET_DEBUG("Writing response dataset to XML file");
                     /* expect that (0008,0005) is set if extended characters are used */
-                    if (responseIdentifiers->tagExistsWithValue(DCM_SpecificCharacterSet))
+                    if (responseIdentifiers->findAndGetOFStringArray(DCM_SpecificCharacterSet, csetString).good())
                     {
-#ifdef DCMTK_ENABLE_CHARSET_CONVERSION
-                        DCMNET_DEBUG("Converting all element values that are affected by SpecificCharacterSet (0008,0005) to UTF-8");
-                        cond = responseIdentifiers->convertToUTF8();
-#else
-                        if (responseIdentifiers->containsExtendedCharacters(OFFalse /*checkAllStrings*/))
+                        /* for ASCII and UTF-8, there is no need to convert the character strings */
+                        if (!csetString.empty() && (csetString != "ISO_IR 192"))
                         {
-                            DCMNET_WARN("No support for character set conversion available ... quoting non-ASCII characters");
-                            /* make sure that non-ASCII characters are quoted appropriately */
-                            writeFlags |= DCMTypes::XF_convertNonASCII;
-                        } else {
-                            DCMNET_DEBUG("No support for character set conversion available");
-                        }
+#ifdef DCMTK_ENABLE_CHARSET_CONVERSION
+                            DCMNET_DEBUG("Converting all element values that are affected by SpecificCharacterSet (0008,0005) to UTF-8");
+                            cond = responseIdentifiers->convertToUTF8();
+#else
+                            if (responseIdentifiers->containsExtendedCharacters(OFFalse /*checkAllStrings*/))
+                            {
+                                DCMNET_WARN("No support for character set conversion available ... quoting non-ASCII characters");
+                                /* make sure that non-ASCII characters are quoted appropriately */
+                                writeFlags |= DCMTypes::XF_convertNonASCII;
+                            } else {
+                                DCMNET_DEBUG("No support for character set conversion available");
+                            }
 #endif
+                        }
                     }
                     /* write response dataset to XML file */
                     if (cond.good())
@@ -271,7 +270,7 @@ OFCondition DcmFindSCU::performQuery(
     }
 
     /* initialize association parameters, i.e. create an instance of T_ASC_Parameters*. */
-    OFCondition cond = ASC_createAssociationParameters(&params, maxReceivePDULength);
+    OFCondition cond = ASC_createAssociationParameters(&params, maxReceivePDULength, dcmConnectionTimeout.get());
     if (cond.bad())
     {
         DCMNET_ERROR("Creating Association Parameters Failed: " << DimseCondition::dump(temp_str, cond));
@@ -578,8 +577,6 @@ OFBool DcmFindSCU::writeToXMLFile(const char* ofname, DcmDataset *dataset)
                 encString = "ISO-8859-3";
             else if (csetString == "ISO_IR 110")
                 encString = "ISO-8859-4";
-            else if (csetString == "ISO_IR 148")
-                encString = "ISO-8859-9";
             else if (csetString == "ISO_IR 144")
                 encString = "ISO-8859-5";
             else if (csetString == "ISO_IR 127")
@@ -588,6 +585,10 @@ OFBool DcmFindSCU::writeToXMLFile(const char* ofname, DcmDataset *dataset)
                 encString = "ISO-8859-7";
             else if (csetString == "ISO_IR 138")
                 encString = "ISO-8859-8";
+            else if (csetString == "ISO_IR 148")
+                encString = "ISO-8859-9";
+            else if (csetString == "ISO_IR 203")
+                encString = "ISO-8859-15";
             else {
                 if (!csetString.empty())
                 {
@@ -711,7 +712,7 @@ OFCondition DcmFindSCU::findSCU(
     int n = repeatCount;
 
     /* prepare C-FIND-RQ message */
-    bzero(OFreinterpret_cast(char*, &req), sizeof(req));
+    memset(OFreinterpret_cast(char*, &req), 0, sizeof(req));
     OFStandard::strlcpy(req.AffectedSOPClassUID, abstractSyntax, sizeof(req.AffectedSOPClassUID));
     req.DataSetType = DIMSE_DATASET_PRESENT;
     req.Priority = DIMSE_PRIORITY_MEDIUM;

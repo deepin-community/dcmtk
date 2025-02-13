@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2020, OFFIS e.V.
+ *  Copyright (C) 1994-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -22,13 +22,6 @@
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CTIME
-#define INCLUDE_UNISTD
-#include "dcmtk/ofstd/ofstdinc.h"
-
 #include "dcmtk/ofstd/ofstream.h"
 #include "dcmtk/dcmdata/dcfilefo.h"
 #include "dcmtk/dcmdata/dcitem.h"
@@ -44,10 +37,12 @@
 
 #include "dcmtk/dcmdata/dcdeftag.h"
 #include "dcmtk/dcmdata/dcuid.h"
-#include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
-#include "dcmtk/dcmdata/dcostrmf.h"    /* for class DcmOutputFileStream */
 #include "dcmtk/dcmdata/dcistrma.h"    /* for class DcmInputStream */
 #include "dcmtk/dcmdata/dcistrmf.h"    /* for class DcmInputFileStream */
+#include "dcmtk/dcmdata/dcistrms.h"    /* for class DcmStdinStream */
+#include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
+#include "dcmtk/dcmdata/dcostrmf.h"    /* for class DcmOutputFileStream */
+#include "dcmtk/dcmdata/dcostrms.h"    /* for class DcmStdoutStream */
 #include "dcmtk/dcmdata/dcwcache.h"    /* for class DcmWriteCache */
 #include "dcmtk/dcmdata/dcjson.h"
 
@@ -243,10 +238,10 @@ OFCondition DcmFileFormat::writeJson(STD_NAMESPACE ostream &out,
         if (metinf)
         {
           status = metinf->writeJsonExt(out, format, OFFalse, OFFalse);
-          out << format.newline();
         }
         if (dset && status.good())
         {
+            if (metinf && (metinf->card() > 0) && (dset->card() > 0)) out << "," << format.newline();
             status = dset->writeJsonExt(out, format, OFFalse, OFFalse);
         }
         out << format.newline() << format.indent() << "}" << format.newline();
@@ -303,11 +298,10 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
         if (obj != NULL)
             tag = obj->getTag();
 
-        DcmTagKey xtag = tag.getXTag();
         DcmElement *elem = OFstatic_cast(DcmElement *, obj);
 
-        /* go ahead and scrutinize one particular data element (depending on xtag) */
-        if (xtag == DCM_FileMetaInformationGroupLength)     // (0002,0000)
+        /* go ahead and scrutinize one particular data element (depending on tag) */
+        if (tag == DCM_FileMetaInformationGroupLength)     // (0002,0000)
         {
             if (elem == NULL)
             {
@@ -319,7 +313,7 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
                 OFstatic_cast(DcmUnsignedLong *, elem)->putUint32Array(&temp, 1);
             // the calculation of actual group length value is contained in validateMetaInfo()
         }
-        else if (xtag == DCM_FileMetaInformationVersion)    // (0002,0001)
+        else if (tag == DCM_FileMetaInformationVersion)    // (0002,0001)
         {
             if (elem == NULL)
             {
@@ -357,7 +351,7 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
                 DCMDATA_ERROR("DcmFileFormat: Cannot determine Version of MetaHeader");
             }
         }
-        else if (xtag == DCM_MediaStorageSOPClassUID)       // (0002,0002)
+        else if (tag == DCM_MediaStorageSOPClassUID)       // (0002,0002)
         {
             if (elem == NULL)
             {
@@ -399,7 +393,7 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
                 }
             }
         }
-        else if (xtag == DCM_MediaStorageSOPInstanceUID)    // (0002,0003)
+        else if (tag == DCM_MediaStorageSOPInstanceUID)    // (0002,0003)
         {
             if (elem == NULL)
             {
@@ -443,7 +437,7 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
                 }
             }
         }
-        else if (xtag == DCM_TransferSyntaxUID)             // (0002,0010)
+        else if (tag == DCM_TransferSyntaxUID)             // (0002,0010)
         {
             if (elem == NULL)
             {
@@ -465,7 +459,7 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
                     << dcXfer.getXferName() << "] on writing following Dataset");
             }
         }
-        else if (xtag == DCM_ImplementationClassUID)        // (0002,0012)
+        else if (tag == DCM_ImplementationClassUID)        // (0002,0012)
         {
             if (elem == NULL)
             {
@@ -478,7 +472,7 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
                 OFstatic_cast(DcmUniqueIdentifier *, elem)->putString(uid);
             }
         }
-        else if (xtag == DCM_ImplementationVersionName)     // (0002,0013)
+        else if (tag == DCM_ImplementationVersionName)     // (0002,0013)
         {
             if (elem == NULL)
             {
@@ -491,9 +485,9 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
                 OFstatic_cast(DcmShortString *, elem)->putString(uid);
             }
         }
-        else if ((xtag == DCM_SourceApplicationEntityTitle) ||  // (0002,0016)
-                 (xtag == DCM_SendingApplicationEntityTitle) || // (0002,0017)
-                 (xtag == DCM_ReceivingApplicationEntityTitle)) // (0002,0018)
+        else if ((tag == DCM_SourceApplicationEntityTitle) ||  // (0002,0016)
+                 (tag == DCM_SendingApplicationEntityTitle) || // (0002,0017)
+                 (tag == DCM_ReceivingApplicationEntityTitle)) // (0002,0018)
         {
             if (elem == NULL)
             {
@@ -502,9 +496,9 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
             }
             DCMDATA_WARN("DcmFileFormat: Don't know how to handle " << tag.getTagName());
         }
-        else if ((xtag == DCM_SourcePresentationAddress) ||  // (0002,0026)
-                 (xtag == DCM_SendingPresentationAddress) || // (0002,0027)
-                 (xtag == DCM_ReceivingPresentationAddress)) // (0002,0028)
+        else if ((tag == DCM_SourcePresentationAddress) ||  // (0002,0026)
+                 (tag == DCM_SendingPresentationAddress) || // (0002,0027)
+                 (tag == DCM_ReceivingPresentationAddress)) // (0002,0028)
         {
             if (elem == NULL)
             {
@@ -513,7 +507,7 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
             }
             DCMDATA_WARN("DcmFileFormat: Don't know how to handle " << tag.getTagName());
         }
-        else if (xtag == DCM_PrivateInformationCreatorUID)  // (0002,0100)
+        else if (tag == DCM_PrivateInformationCreatorUID)  // (0002,0100)
         {
             if (elem == NULL)
             {
@@ -522,7 +516,7 @@ OFCondition DcmFileFormat::checkMetaHeaderValue(DcmMetaInfo *metainfo,
             }
             DCMDATA_WARN("DcmFileFormat: Don't know how to handle PrivateInformationCreatorUID");
         }
-        else if (xtag == DCM_PrivateInformation)            // (0002,0102)
+        else if (tag == DCM_PrivateInformation)            // (0002,0102)
         {
             if (elem == NULL)
             {
@@ -642,7 +636,7 @@ E_TransferSyntax DcmFileFormat::lookForXfer(DcmMetaInfo *metainfo)
         if (metainfo->search(DCM_TransferSyntaxUID, stack).good())
         {
             DcmUniqueIdentifier *xferUI = OFstatic_cast(DcmUniqueIdentifier *, stack.top());
-            if (xferUI->getTag().getXTag() == DCM_TransferSyntaxUID)
+            if (xferUI->getTag() == DCM_TransferSyntaxUID)
             {
                 char *xferid = NULL;
                 xferUI->getString(xferid);
@@ -735,6 +729,9 @@ OFCondition DcmFileFormat::readUntilTag(DcmInputStream &inStream,
                 // do read meta header not in given transfer syntax (always Little Endian Explicit)
                 errorFlag = metaInfo->read(inStream, EXS_Unknown, glenc, maxReadLength);
             }
+
+            // bail out if the meta-header is still incomplete or an error occurred
+            if (errorFlag.bad()) return errorFlag;
 
             // determine xfer from tag (0002,0010) in the meta header
             newxfer = lookForXfer(metaInfo);
@@ -909,12 +906,11 @@ OFCondition DcmFileFormat::loadFileUntilTag(
     /* check parameters first */
     if (!fileName.isEmpty())
     {
-        /* open file for input */
-        DcmInputFileStream fileStream(fileName);
-        /* check stream status */
-        l_error = fileStream.status();
-        if (l_error.good())
+        if (fileName.isStandardStream())
         {
+            /* use stdin stream */
+            DcmStdinStream inStream;
+
             /* clear this object */
             l_error = clear();
             if (l_error.good())
@@ -922,12 +918,47 @@ OFCondition DcmFileFormat::loadFileUntilTag(
                 /* save old value */
                 const E_FileReadMode oldMode = FileReadMode;
                 FileReadMode = readMode;
-                /* read data from file */
+
+                /* initialize transfer */
                 transferInit();
-                l_error = readUntilTag(fileStream, readXfer, groupLength, maxReadLength, stopParsingAtElement);
+
+                do
+                {
+                  /* fill the buffer from stdin */
+                  inStream.fillBuffer();
+                  /* and read the buffer content into the DICOM dataset */
+                  l_error = readUntilTag(inStream, readXfer, groupLength, maxReadLength, stopParsingAtElement);
+                } while (l_error == EC_StreamNotifyClient); /* repeat until we're at the end of the stream, or an error occurs */
+
+                /* end transfer */
                 transferEnd();
+
                 /* restore old value */
                 FileReadMode = oldMode;
+            }
+
+        } else {
+            /* open file for output */
+            DcmInputFileStream fileStream(fileName);
+
+            /* check stream status */
+            l_error = fileStream.status();
+            if (l_error.good())
+            {
+                /* clear this object */
+                l_error = clear();
+                if (l_error.good())
+                {
+                    /* save old value */
+                    const E_FileReadMode oldMode = FileReadMode;
+                    FileReadMode = readMode;
+                    /* read data from file */
+                    transferInit();
+                    l_error = readUntilTag(fileStream, readXfer, groupLength, maxReadLength, stopParsingAtElement);
+                    transferEnd();
+                    /* restore old value */
+                    FileReadMode = oldMode;
+                }
             }
         }
     }
@@ -954,20 +985,28 @@ OFCondition DcmFileFormat::saveFile(const OFFilename &fileName,
     if (!fileName.isEmpty())
     {
         DcmWriteCache wcache;
+        DcmOutputStream *fileStream;
 
-        /* open file for output */
-        DcmOutputFileStream fileStream(fileName);
+        if (fileName.isStandardStream())
+        {
+            /* use stdout stream */
+            fileStream = new DcmStdoutStream(fileName);
+        } else {
+            /* open file for output */
+            fileStream = new DcmOutputFileStream(fileName);
+        }
 
         /* check stream status */
-        l_error = fileStream.status();
+        l_error = fileStream->status();
         if (l_error.good())
         {
             /* write data to file */
             transferInit();
-            l_error = write(fileStream, writeXfer, encodingType, &wcache, groupLength,
+            l_error = write(*fileStream, writeXfer, encodingType, &wcache, groupLength,
                 padEncoding, padLength, subPadLength, 0 /*instanceLength*/, writeMode);
             transferEnd();
         }
+        delete fileStream;
     }
     return l_error;
 }

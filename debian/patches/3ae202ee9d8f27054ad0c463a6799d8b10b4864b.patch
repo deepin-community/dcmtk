@@ -1,0 +1,138 @@
+From 3ae202ee9d8f27054ad0c463a6799d8b10b4864b Mon Sep 17 00:00:00 2001
+From: Joerg Riesmeier <dicom@jriesmeier.com>
+Date: Thu, 30 Sep 2021 13:48:42 +0200
+Subject: [PATCH] Converted non-ASCII characters to ASCII.
+
+Thanks to GitHub user "malaterre" for the report and suggested fix.
+---
+ dcmect/libsrc/enhanced_ct.cc               | 4 ++--
+ dcmfg/libsrc/concatenationloader.cc        | 4 ++--
+ dcmiod/include/dcmtk/dcmiod/modsopcommon.h | 6 +++---
+ dcmseg/include/dcmtk/dcmseg/segment.h      | 6 +++---
+ dcmtls/include/dcmtk/dcmtls/tlsciphr.h     | 6 +++---
+ 5 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/dcmect/libsrc/enhanced_ct.cc b/dcmect/libsrc/enhanced_ct.cc
+index 007cb8813..619374290 100644
+--- a/dcmect/libsrc/enhanced_ct.cc
++++ b/dcmect/libsrc/enhanced_ct.cc
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 2019, Open Connections GmbH
++ *  Copyright (C) 2019-2021, Open Connections GmbH
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation are maintained by
+@@ -480,7 +480,7 @@ OFCondition EctEnhancedCT::loadDataset(DcmDataset& dataset, EctEnhancedCT*& ct)
+         else
+         {
+             DCMECT_ERROR("Invalid SOP Class: "
+-                         << sopClass << ", only Enhanced CT Image Storage (1.2.840.10008.5.1.4.1.1.2.1​) supported");
++                         << sopClass << ", only Enhanced CT Image Storage (1.2.840.10008.5.1.4.1.1.2.1) supported");
+             return ECT_InvalidSOPClass;
+         }
+     }
+diff --git a/dcmfg/libsrc/concatenationloader.cc b/dcmfg/libsrc/concatenationloader.cc
+index 3833ddc4f..aad76f69f 100644
+--- a/dcmfg/libsrc/concatenationloader.cc
++++ b/dcmfg/libsrc/concatenationloader.cc
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 2019-2020, Open Connections GmbH
++ *  Copyright (C) 2019-2021, Open Connections GmbH
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation are maintained by
+@@ -445,7 +445,7 @@ OFCondition ConcatenationLoader::insertDestinationAttributes()
+         char buf[100];
+         dcmGenerateUniqueIdentifier(buf, SITE_INSTANCE_UID_ROOT);
+         uid = buf;
+-        DCMFG_WARN("SOP Instance UID of Concatentation Source (0020,0242)​ not set, created new SOP Instance UID "
++        DCMFG_WARN("SOP Instance UID of Concatentation Source (0020,0242) not set, created new SOP Instance UID "
+                    << uid);
+     }
+     OFCondition result = m_Result->putAndInsertOFStringArray(DCM_SOPInstanceUID, uid);
+diff --git a/dcmiod/include/dcmtk/dcmiod/modsopcommon.h b/dcmiod/include/dcmtk/dcmiod/modsopcommon.h
+index fab033e3f..27f433ad2 100644
+--- a/dcmiod/include/dcmtk/dcmiod/modsopcommon.h
++++ b/dcmiod/include/dcmtk/dcmiod/modsopcommon.h
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 2015-2019, Open Connections GmbH
++ *  Copyright (C) 2015-2021, Open Connections GmbH
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation are maintained by
+@@ -177,8 +177,8 @@ public:
+ 
+     /**  Set Timezone Offset From UTC
+      *   @param  value Value to be set (single value only) or "" for no value.
+-     *   Encoded as an ASCII string in the format “&ZZXX”. The components of this
+-     *   string, from left to right, are & = “+” or “-”, and ZZ = Hours and
++     *   Encoded as an ASCII string in the format "&ZZXX". The components of this
++     *   string, from left to right, are & = "+" or "-", and ZZ = Hours and
+      *   XX = Minutes of offset.
+      *   @param  checkValue Check 'value' for conformance with VR (SH) and VM (1) if enabled
+      *   @return EC_Normal if successful, an error code otherwise
+diff --git a/dcmseg/include/dcmtk/dcmseg/segment.h b/dcmseg/include/dcmtk/dcmseg/segment.h
+index f7987c0c9..8c887a531 100644
+--- a/dcmseg/include/dcmtk/dcmseg/segment.h
++++ b/dcmseg/include/dcmtk/dcmseg/segment.h
+@@ -1,6 +1,6 @@
+ /*
+  *
+- *  Copyright (C) 2015-2019, Open Connections GmbH
++ *  Copyright (C) 2015-2021, Open Connections GmbH
+  *  All rights reserved.  See COPYRIGHT file for details.
+  *
+  *  This software and supporting documentation are maintained by
+@@ -58,10 +58,10 @@ public:
+      *          successful; memory is allocated by the function
+      *  @param  segmentLabel Free text label for the segment
+      *  @param  segmentedPropertyCategory The segmented property category.
+-     *          Baseline CID 7150 “Segmentation Property Categories” should be
++     *          Baseline CID 7150 "Segmentation Property Categories" should be
+      *          used.
+      *  @param  segmentedPropertyType The segmented property type. Baseline CID
+-     *          7151 “Segmentation Property Types”
++     *          7151 "Segmentation Property Types"
+      *  @param  algoType The algorithm type used for segmenting this segment
+      *  @param  algoName Algorithm name (required if algoType is not MANUAL)
+      *  @return EC_Normal if creation was successful, error otherwise
+diff --git a/dcmtls/include/dcmtk/dcmtls/tlsciphr.h b/dcmtls/include/dcmtk/dcmtls/tlsciphr.h
+index 6ffd4a962..c3ad28794 100644
+--- a/dcmtls/include/dcmtk/dcmtls/tlsciphr.h
++++ b/dcmtls/include/dcmtk/dcmtls/tlsciphr.h
+@@ -132,7 +132,7 @@ enum DcmTLSCipherKeyExchange
+   /// Static RSA key exchange
+   TKE_RSA,
+ 
+-  /// Elliptic Curve Diffie–Hellman
++  /// Elliptic Curve Diffie-Hellman
+   TKE_ECDH,
+ 
+   /// Fixed ECDH with ECDSA-signed certificates
+@@ -141,7 +141,7 @@ enum DcmTLSCipherKeyExchange
+   /// Fixed ECDH with RSA signatures
+   TKE_ECDH_RSA,
+ 
+-  /// Diffie–Hellman key exchange
++  /// Diffie-Hellman key exchange
+   TKE_DH
+ 
+ };
+@@ -157,7 +157,7 @@ enum DcmTLSCipherAuthentication
+   /// Digital Signature Standard
+   TCA_DSS,
+ 
+-  /// Elliptic Curve Diffie–Hellman
++  /// Elliptic Curve Diffie-Hellman
+   TCA_ECDH,
+ 
+   /// Elliptic Curve Digital Signature Algorithm
+-- 
+2.30.2
+

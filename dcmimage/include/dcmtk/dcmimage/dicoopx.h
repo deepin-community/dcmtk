@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1996-2012, OFFIS e.V.
+ *  Copyright (C) 1996-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -26,10 +26,6 @@
 #include "dcmtk/config/osconfig.h"
 #include "dcmtk/dcmimgle/diutils.h"
 #include "dcmtk/ofstd/ofstream.h"
-
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/dcmimage/dicdefin.h"
 
@@ -78,7 +74,7 @@ class DCMTK_DCMIMAGE_EXPORT DiColorOutputPixel
      */
     virtual const void *getData() const = 0;
 
-    /** get pointer to outpout pixel data (abstract)
+    /** get pointer to output pixel data (abstract)
      *
      ** @return pointer to pixel data
      */

@@ -1,0 +1,142 @@
+#!/bin/sh
+set -e
+
+pkg=dcmtk
+
+CUR_DIR=`pwd`
+
+
+export LC_ALL=C.UTF-8
+if [ "${AUTOPKGTEST_TMP}" = "" ] ; then
+  AUTOPKGTEST_TMP=$(mktemp -d /tmp/${pkg}-test.XXXXXX)
+  trap "rm -rf ${AUTOPKGTEST_TMP}" 0 INT QUIT ABRT PIPE TERM
+fi
+
+cp -a /usr/lib/python3/dist-packages/pydicom/data/test_files/CT_small.dcm "${AUTOPKGTEST_TMP}"
+cp -a /usr/share/dcmtk/dicom.dic "${AUTOPKGTEST_TMP}"
+
+
+export DCMDICTPATH=${AUTOPKGTEST_TMP}/dicom.dic
+
+cd "${AUTOPKGTEST_TMP}"
+
+echo "896048a80ff192ca8b6d9a1ba29d64fd  CT_small.dcm" >> checksums
+
+echo "Running Tests"
+
+echo "Test 1"
+
+dcm2json CT_small.dcm dcm2json.json
+
+echo "Test 2"
+
+dcm2xml CT_small.dcm dcm2xml.xml
+
+echo "Test 3"
+
+dcmconv --convert-to-latin1 CT_small.dcm dcmconv.out
+
+echo "Test 4"
+
+dcmcrle CT_small.dcm dcmcrle.out
+
+echo "Test 5"
+
+dcmdrle dcmcrle.out dcmdrle.out
+
+echo "Test 6"
+
+dcmdump CT_small.dcm > dcmdump.out
+
+echo "Test 7"
+
+dump2dcm dcmdump.out dump2dcm.dcm
+
+echo "Test 8"
+
+dcmftest CT_small.dcm
+
+echo "Test 9"
+
+# only write the dataset so that the file meta information
+# does not change and we can keep the same md5sum
+
+dcmodify --write-dataset -e "(0008,0031)" CT_small.dcm
+
+echo "Test 10"
+
+dcm2pnm +Rtd CT_small.dcm dcm2pnm.png
+
+echo "Test 11"
+
+dcmscale +Sxf 2.0 CT_small.dcm dcmscale.out
+
+echo "Test 12"
+
+dcmcjpls CT_small.dcm dcmcjpls.out
+
+echo "Test 13"
+
+dcmdjpls dcmcjpls.out dcmdjpls.out
+
+echo "Test 14"
+
+dcml2pnm  CT_small.dcm dcml2pnm.png
+
+echo "Test 15"
+
+cat <<EOT >> crv.txt
+ 256.451947    1.000000
+ 477.689863  128.822080
+ 128.822080  477.689863
+  35.310137  128.822080
+ 256.451947    1.000000
+EOT
+
+dcmmkcrv CT_small.dcm crv.txt dcmmkcrv.out
+
+echo "Test 16"
+
+dcmmklut dcmmklut.out
+
+echo "Test 17"
+
+dcmp2pgm CT_small.dcm dcmp2pgm.out
+
+echo "Test 18"
+dcmpsmk CT_small.dcm dcmpsmk.out
+
+echo "Test 19"
+mkdir dcmqridx
+
+dcmqridx dcmqridx/ CT_small.dcm
+
+echo "Test 20"
+dcmsign -q CT_small.dcm
+
+if [ -f dcmqridx/index.dat ] && \
+   [ -f dcmpsmk.out ] && \
+   [ -f dcmmklut.out ] && \
+   [ -f dcm2json.json ] && \
+   [ -f dcm2xml.xml ] && \
+   [ -f dcmconv.out ] && \
+   [ -f dcmcrle.out ] && \
+   [ -f dcmdrle.out ] && \
+   [ -f dcmdump.out ] && \
+   [ -f dump2dcm.dcm ] && \
+   [ -f dcm2pnm.png ] && \
+   [ -f dcmscale.out ] && \
+   [ -f dcmcjpls.out ] && \
+   [ -f dcmdjpls.out ] && \
+   [ -f dcml2pnm.png ] && \
+   [ -f dcmmkcrv.out ] && \
+   [ -f dcmp2pgm.out ] && \
+   md5sum --check checksums; then
+
+   echo "PASS"
+
+else
+   echo "FAIL"
+
+fi
+

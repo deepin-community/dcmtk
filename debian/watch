@@ -1,2 +1,4 @@
-version=3
-ftp://dicom.offis.de/pub/dicom/offis/software/dcmtk/current/dcmtk-(.*)\.tar\.gz
+version=4
+opts="mode=git,pgpmode=none,pretty=3.6.8~git%cd.%h" \
+https://github.com/DCMTK/dcmtk \
+HEAD debian uupdate

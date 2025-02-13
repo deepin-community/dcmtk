@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1994-2017, OFFIS e.V.
+ *  Copyright (C) 1994-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -92,7 +92,7 @@ public:
 
     /** find an entry in the set
      *  @param key tag key of the entry to be searched for
-     *  @param privCreator private creator name, may be NULL
+     *  @param privCreator private creator identifier, may be NULL
      *  @return pointer to entry (if found), otherwise NULL
      */
     DcmDictEntry *find(const DcmTagKey& key, const char *privCreator);
@@ -130,21 +130,29 @@ public:
       : dict(NULL), hindex(0), iterating(OFFalse), iter()
         { init(d, atEnd); }
 
-    /// copy constructor
+    /** copy constructor
+     * @param i the iterator to copy
+     */
     DcmHashDictIterator(const DcmHashDictIterator& i)
       : dict(i.dict), hindex(i.hindex), iterating(i.iterating), iter(i.iter)
         { }
 
-    /// copy assignment operator
+    /** copy assignment operator
+     * @param i the Iterator to copy and assign
+     */
     DcmHashDictIterator& operator=(const DcmHashDictIterator& i)
         { dict = i.dict; hindex = i.hindex;
           iterating = i.iterating; iter = i.iter; return *this; }
 
-    /// comparison equality
+    /** comparison equality
+     * @param x the iterator to compare against
+     */
     OFBool operator==(const DcmHashDictIterator& x) const
         { return iterating ? x.iterating && (hindex == x.hindex) && (iter == x.iter) : !x.iterating; }
 
-    /// comparison non-equality
+    /** comparison non-equality
+     * @param x the iterator to compare against
+     */
     OFBool operator!=(const DcmHashDictIterator& x) const
         { return !(*this == x); }
 
@@ -216,14 +224,14 @@ public:
 
     /** hash table lookup for the given tag key and private creator name
      *  @param key tag key of the entry to be searched for
-     *  @param privCreator private creator name, may be NULL
+     *  @param privCreator private creator identifier, may be NULL
      *  @return pointer to entry (if found), otherwise NULL
      */
     const DcmDictEntry* get(const DcmTagKey& key, const char *privCreator) const;
 
-    /** deletes the entry for the given tag and private creator
+    /** deletes the entry for the given tag and private creator identifier
      *  @param key tag key of the entry to be deleted
-     *  @param privCreator private creator name, may be NULL
+     *  @param privCreator private creator identifier, may be NULL
      */
     void del(const DcmTagKey& key, const char *privCreator);
 
@@ -238,7 +246,9 @@ public:
     DcmHashDictIterator end() const
         { DcmHashDictIterator iter(this, OFTrue); return iter; }
 
-    /// prints some information about hash table bucket utilization
+    /** prints some information about hash table bucket utilization
+     * @param out the stream to print into
+     */
     STD_NAMESPACE ostream& loadSummary(STD_NAMESPACE ostream& out);
 
 private:
@@ -254,7 +264,7 @@ private:
 
     /** compute hash value for given tag key
      *  @param key pointer to tag key
-     *  @param privCreator private creator name, may be NULL
+     *  @param privCreator private creator identifier, may be NULL
      *  @return hash value
      */
     int hash(const DcmTagKey* key, const char *privCreator) const;
@@ -266,18 +276,18 @@ private:
      */
     DcmDictEntry* insertInList(DcmDictEntryList& lst, DcmDictEntry* entry);
 
-    /** removes the entry for the given tag and private creator
+    /** removes the entry for the given tag and private creator identifier
      *  @param lst list to remove from
      *  @param key tag key of the entry to be removed
-     *  @param privCreator private creator name, may be NULL
+     *  @param privCreator private creator identifier, may be NULL
      *  @return pointer to removed element, if any
      */
     DcmDictEntry* removeInList(DcmDictEntryList& lst, const DcmTagKey& key, const char *privCreator);
 
-    /** searches entry for the given tag and private creator
+    /** searches entry for the given tag and private creator identifier
      *  @param lst list to search in
      *  @param key tag key of the entry to be searched for
-     *  @param privCreator private creator name, may be NULL
+     *  @param privCreator private creator identifier, may be NULL
      *  @return pointer to found element, NULL if not found
      */
     DcmDictEntry* findInList(DcmDictEntryList& lst, const DcmTagKey& key, const char *privCreator) const;

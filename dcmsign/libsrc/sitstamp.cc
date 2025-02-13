@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2019, OFFIS e.V.
+ *  Copyright (C) 2019-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -29,12 +29,7 @@
 #include "dcmtk/dcmdata/dcerror.h"
 #include "dcmtk/dcmdata/dcitem.h"
 #include "dcmtk/dcmdata/dcdeftag.h"
-#include "dcmtk/dcmsign/simd5.h"
-#include "dcmtk/dcmsign/siripemd.h"
-#include "dcmtk/dcmsign/sisha1.h"
-#include "dcmtk/dcmsign/sisha256.h"
-#include "dcmtk/dcmsign/sisha384.h"
-#include "dcmtk/dcmsign/sisha512.h"
+#include "dcmtk/dcmsign/simdmac.h"
 #include "dcmtk/dcmsign/sicert.h"
 #include "dcmtk/dcmsign/sicertvf.h"
 #include "dcmtk/dcmsign/dcsignat.h"
@@ -48,16 +43,43 @@ BEGIN_EXTERN_C
 #include <openssl/x509.h>
 END_EXTERN_C
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#ifndef HAVE_OPENSSL_PROTOTYPE_X509_GET0_NOTBEFORE
 #define X509_get0_notBefore(x) X509_get_notBefore(x)
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_X509_GET0_NOTAFTER
 #define X509_get0_notAfter(x) X509_get_notAfter(x)
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_TS_STATUS_INFO_GET0_STATUS
 #define TS_STATUS_INFO_get0_status(x) (x)->status
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_TS_STATUS_INFO_GET0_TEXT
 #define TS_STATUS_INFO_get0_text(x) (x)->text
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_TS_STATUS_INFO_GET0_FAILURE_INFO
 #define TS_STATUS_INFO_get0_failure_info(x) (x)->failure_info
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_TS_VERIFY_CTS_SET_CERTS
 #define TS_VERIFY_CTS_set_certs(x,y) ((x)->certs = (y))
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_TS_VERIFY_CTX_SET_DATA
 #define TS_VERIFY_CTX_set_data(x,y) ((x)->data = (y))
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_TS_VERIFY_CTX_SET_FLAGS
 #define TS_VERIFY_CTX_set_flags(x,y) ((x)->flags = (y))
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_TS_VERIFY_CTX_SET_STORE
 #define TS_VERIFY_CTX_set_store(x,y) ((x)->store = (y))
+#endif
+
+#ifndef HAVE_OPENSSL_PROTOTYPE_ASN1_STRING_GET0_DATA
 #define ASN1_STRING_get0_data(x) ASN1_STRING_data((asn1_string_st*)x)
 #endif
 
@@ -158,27 +180,27 @@ OFCondition SiTimeStamp::create_ts_query(
   switch (tsq_mac_)
   {
     case EMT_SHA1:
-      mac = new SiSHA1();
+      mac = new SiMDMAC(EMT_SHA1);
       evpmd = EVP_sha1();
       break;
     case EMT_RIPEMD160:
-      mac = new SiRIPEMD160();
+      mac = new SiMDMAC(EMT_RIPEMD160);
       evpmd = EVP_ripemd160();
       break;
     case EMT_MD5:
-      mac = new SiMD5();
+      mac = new SiMDMAC(EMT_MD5);
       evpmd = EVP_md5();
       break;
     case EMT_SHA256:
-      mac = new SiSHA256();
+      mac = new SiMDMAC(EMT_SHA256);
       evpmd = EVP_sha256();
       break;
     case EMT_SHA384:
-      mac = new SiSHA384();
+      mac = new SiMDMAC(EMT_SHA384);
       evpmd = EVP_sha384();
       break;
     case EMT_SHA512:
-      mac = new SiSHA512();
+      mac = new SiMDMAC(EMT_SHA512);
       evpmd = EVP_sha512();
       break;
     default:
@@ -334,7 +356,7 @@ struct StatusMap
   const char *text;
 };
 
-/** status flags for timestamp resonse failures
+/** status flags for timestamp response failures
  *  Source: OpenSSL, ts_rsp_print.c
  */
 static StatusMap failure_map[] =
@@ -619,7 +641,7 @@ OFCondition SiTimeStamp::check_ts_response(
   SiMAC *mac = NULL;
   if (result.good())
   {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#ifndef HAVE_OPENSSL_X509_ALGOR_GET0_CONST_PARAM
     ASN1_OBJECT *mac_oid = NULL;
     void *ppval = NULL;
 #else
@@ -640,22 +662,22 @@ OFCondition SiTimeStamp::check_ts_response(
       switch (mac_nid)
       {
         case NID_sha1:
-          mac = new SiSHA1();
+          mac = new SiMDMAC(EMT_SHA1);
           break;
         case NID_ripemd160:
-          mac = new SiRIPEMD160();
+          mac = new SiMDMAC(EMT_RIPEMD160);
           break;
         case NID_md5:
-          mac = new SiMD5();
+          mac = new SiMDMAC(EMT_MD5);
           break;
         case NID_sha256:
-          mac = new SiSHA256();
+          mac = new SiMDMAC(EMT_SHA256);
           break;
         case NID_sha384:
-          mac = new SiSHA384();
+          mac = new SiMDMAC(EMT_SHA384);
           break;
         case NID_sha512:
-          mac = new SiSHA512();
+          mac = new SiMDMAC(EMT_SHA512);
           break;
         default:
           DCMSIGN_ERROR("timestamp response validation failed: unsupported MAC algorithm " << ( mac_name ? mac_name : "(unknown)") << " in timestamp response");
@@ -665,7 +687,7 @@ OFCondition SiTimeStamp::check_ts_response(
     }
   }
 
-  // check that the lenghts of both MACs are really the same
+  // check that the lengths of both MACs are really the same
   if (result.good())
   {
     // mac is now guaranteed to point to a valid SiMAC object
@@ -1205,7 +1227,7 @@ OFCondition SiTimeStamp::verifyTSSignature(SiCertificateVerifier& cv)
       DCMSIGN_INFO("      Validity                : not before " << aString);
       cert.getCertValidityNotAfter(aString);
       DCMSIGN_INFO("      Validity                : not after " << aString);
-      const char *ecname = NULL;
+      OFString ecname;
       switch (cert.getKeyType())
       {
         case EKT_RSA:
@@ -1216,7 +1238,7 @@ OFCondition SiTimeStamp::verifyTSSignature(SiCertificateVerifier& cv)
           break;
         case EKT_EC:
           ecname = cert.getCertCurveName();
-          if (ecname)
+          if (ecname.length() > 0)
           {
             DCMSIGN_INFO("      Public key              : EC, curve " << ecname << ", " << cert.getCertKeyBits() << " bits");
           }
@@ -1282,12 +1304,9 @@ OFCondition SiTimeStamp::verifyTSToken(
 
     if (result.good())
     {
-
-#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
+      // In OpenSSL 1.0.1 and earlier, the first parameter was not const
+      // We cast the const away, which should work with old and new versions
       BIO *bio = BIO_new_mem_buf(OFconst_cast(Uint8 *, signature), sigLength);
-#else
-      BIO *bio = BIO_new_mem_buf(signature, sigLength);
-#endif
       if (bio)
       {
         // set the digital signature as the raw data against which

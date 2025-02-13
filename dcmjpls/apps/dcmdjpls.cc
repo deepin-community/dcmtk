@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2007-2020, OFFIS e.V.
+ *  Copyright (C) 2007-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -20,11 +20,6 @@
  */
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
-
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/dcmdata/dctk.h"
 #include "dcmtk/dcmdata/cmdlnarg.h"
@@ -87,8 +82,8 @@ LICENSE_FILE_DECLARATIONS
   cmd.setOptionColumns(LONGCOL, SHORTCOL);
   cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
 
-  cmd.addParam("dcmfile-in",  "DICOM input filename to be converted");
-  cmd.addParam("dcmfile-out", "DICOM output filename");
+  cmd.addParam("dcmfile-in",  "DICOM input filename to be converted\n(\"-\" for stdin)");
+  cmd.addParam("dcmfile-out", "DICOM output filename\n(\"-\" for stdout)");
 
   cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);
    cmd.addOption("--help",                      "-h",     "print this help text and exit", OFCommandLine::AF_Exclusive);
@@ -303,7 +298,7 @@ LICENSE_FILE_EVALUATE_COMMAND_LINE_OPTIONS
     {
       OFLOG_FATAL(dcmdjplsLogger, error.text() << ": decompressing file: " <<  opt_ifname);
       if (error == EC_CannotChangeRepresentation)
-        OFLOG_FATAL(dcmdjplsLogger, "Input transfer syntax " << original_xfer.getXferName() << " not supported");
+        OFLOG_FATAL(dcmdjplsLogger, "input transfer syntax " << original_xfer.getXferName() << " not supported");
       return 1;
     }
 

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1993-2017, OFFIS e.V.
+ *  Copyright (C) 1993-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -24,8 +24,7 @@
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
 
-#define INCLUDE_CSTDIO
-#include "dcmtk/ofstd/ofstdinc.h"
+
 #include "dcmtk/ofstd/ofcmdln.h"
 #include "dcmtk/oflog/oflog.h"
 #include "dcmtk/dcmqrdb/qrdefine.h"
@@ -225,7 +224,7 @@ public:
   /*
    *  search for peer with AETitle
    *  Input : AETitle
-   *  Ouput : Host Name, Port Number
+   *  Output : Host Name, Port Number
    *  Return : 1 - found in AETable
    *     2 - found in HostTable
    *     0 - not found
@@ -339,12 +338,12 @@ public:
 
   /*
    *  Creates an array of string pointers
-   *  containing the kown Host Names for given Vendor Name.
+   *  containing the known Host Names for given Vendor Name.
    *  The Host Names contained in the array are privately owned
    *  by the config facility (you may not free them). You may
    *  free the array when no longer needed.
    *  Input : Vendor Name
-   *  Ouput : array of string pointers
+   *  Output : array of string pointers
    *  Return : number of entries in array
    *     0 if no entries exist
    */
@@ -365,7 +364,7 @@ public:
   int aeTitlesForSymbolicName(const char *symbolicName, const char ***aeTitleList) const;
 
   /*
-   *  printf contents of configuration stucture
+   *  printf contents of configuration structure
    *  to stdout
    */
   void printConfig();

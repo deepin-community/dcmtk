@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2012-2019, OFFIS e.V.
+ *  Copyright (C) 2012-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -65,6 +65,7 @@ OFTEST_REGISTER(dcmsr_extractDocSubTree_1);
 OFTEST_REGISTER(dcmsr_extractDocSubTree_2);
 OFTEST_REGISTER(dcmsr_extractAndInsertDocSubTree_1);
 OFTEST_REGISTER(dcmsr_extractAndInsertDocSubTree_2);
+OFTEST_REGISTER(dcmsr_setAndGetPatientData);
 OFTEST_REGISTER(dcmsr_setSpecificCharacterSet);
 OFTEST_REGISTER(dcmsr_changeDocumentType_1);
 OFTEST_REGISTER(dcmsr_changeDocumentType_2);
@@ -83,17 +84,21 @@ OFTEST_REGISTER(dcmsr_writeCodeSequence);
 OFTEST_REGISTER(dcmsr_compareCodedEntry);
 OFTEST_REGISTER(dcmsr_useBasicCodedEntry);
 OFTEST_REGISTER(dcmsr_setNumericMeasurementValue);
+OFTEST_REGISTER(dcmsr_emptyMeasurementValueSequence);
+OFTEST_REGISTER(dcmsr_setAndGetFloatingPointRepresentation);
+OFTEST_REGISTER(dcmsr_setAndGetRationalRepresentation);
 OFTEST_REGISTER(dcmsr_CID29e_AcquisitionModality);
 OFTEST_REGISTER(dcmsr_CID42_NumericValueQualifier);
 OFTEST_REGISTER(dcmsr_CID244e_Laterality);
-OFTEST_REGISTER(dcmsr_CID4031e_CommonAnatomicRegions);
-OFTEST_REGISTER(dcmsr_CID7445_DeviceParticipatingRoles);
+OFTEST_REGISTER(dcmsr_CID4031e_CommonAnatomicRegion);
+OFTEST_REGISTER(dcmsr_CID7445_DeviceParticipatingRole);
 OFTEST_REGISTER(dcmsr_CID10013e_CTAcquisitionType);
 OFTEST_REGISTER(dcmsr_CID10033e_CTReconstructionAlgorithm);
 OFTEST_REGISTER(dcmsr_TID1001_ObservationContext);
 OFTEST_REGISTER(dcmsr_TID1204_LanguageOfContentItemAndDescendants);
 OFTEST_REGISTER(dcmsr_TID1411_VolumetricROIMeasurements);
 OFTEST_REGISTER(dcmsr_TID1500_MeasurementReport);
+OFTEST_REGISTER(dcmsr_TID1500_MeasurementReport_minimal);
 OFTEST_REGISTER(dcmsr_TID1501_MeasurementGroup);
 OFTEST_REGISTER(dcmsr_TID1600_ImageLibrary);
 OFTEST_REGISTER(dcmsr_CMR_SRNumericMeasurementValue);

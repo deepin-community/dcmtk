@@ -1,0 +1,178 @@
+From 0cf6b12d8ea0b727f0fe2ab076b6f180100fbd30 Mon Sep 17 00:00:00 2001
+From: Michael Onken <onken@open-connections.de>
+Date: Thu, 25 Nov 2021 11:59:16 +0100
+Subject: [PATCH] Remove some typos in the codebase.
+
+    * Concatentation -> Concatenation
+    * intialized -> initialized
+    * "permits to" -> "permits one to"
+    * "allow to" -> "allow one to"
+    * "allows to" -> "allows one to"
+    * truely -> truly
+    * additonal -> additional
+
+Thanks to GitHub user "malaterre" for the report and suggested fix.
+---
+ dcmfg/libsrc/concatenationcreator.cc  |  2 +-
+ dcmfg/libsrc/concatenationloader.cc   |  6 +++---
+ dcmfg/tests/t_concatenation_loader.cc | 12 ++++++------
+ dcmjpeg/docs/dcmcjpeg.man             |  2 +-
+ dcmpstat/apps/dcmpsmk.cc              |  2 +-
+ dcmpstat/docs/dcmp2pgm.man            |  2 +-
+ dcmpstat/docs/dcmprscp.man            |  2 +-
+ dcmpstat/docs/dcmpsmk.man             |  2 +-
+ dcmwlm/docs/wlmscpfs.man              |  2 +-
+ 9 files changed, 16 insertions(+), 16 deletions(-)
+
+Index: dcmtk/dcmfg/libsrc/concatenationcreator.cc
+===================================================================
+--- dcmtk.orig/dcmfg/libsrc/concatenationcreator.cc
++++ dcmtk/dcmfg/libsrc/concatenationcreator.cc
+@@ -246,7 +246,7 @@ size_t ConcatenationCreator::getNumInsta
+         OFCondition result = configureCommon();
+         if (result.bad())
+         {
+-            DCMFG_ERROR("Unable to compute number of instances for Concatenation, maybe input not intialized?)");
++            DCMFG_ERROR("Unable to compute number of instances for Concatenation, maybe input not initialized?)");
+             return 0;
+         }
+     }
+Index: dcmtk/dcmfg/libsrc/concatenationloader.cc
+===================================================================
+--- dcmtk.orig/dcmfg/libsrc/concatenationloader.cc
++++ dcmtk/dcmfg/libsrc/concatenationloader.cc
+@@ -445,7 +445,7 @@ OFCondition ConcatenationLoader::insertD
+         char buf[100];
+         dcmGenerateUniqueIdentifier(buf, SITE_INSTANCE_UID_ROOT);
+         uid = buf;
+-        DCMFG_WARN("SOP Instance UID of Concatentation Source (0020,0242) not set, created new SOP Instance UID "
++        DCMFG_WARN("SOP Instance UID of Concatenation Source (0020,0242) not set, created new SOP Instance UID "
+                    << uid);
+     }
+     OFCondition result = m_Result->putAndInsertOFStringArray(DCM_SOPInstanceUID, uid);
+@@ -551,8 +551,8 @@ void ConcatenationLoader::Info::print(OF
+ {
+     out << "Concatenation UID*           : " << m_ConcatenationUID << OFendl;
+     out << "  SOP Class UID*             : " << m_SOPClassUID << OFendl;
+-    out << "  Concatentation Source UID* : " << m_SourceUID << OFendl;
+-    out << "  Concatentation Source File : " << m_FileConatenationSource << OFendl;
++    out << "  Concatenation Source UID* : " << m_SourceUID << OFendl;
++    out << "  Concatenation Source File : " << m_FileConatenationSource << OFendl;
+     out << "  Number of Frames (computed): " << m_NumTotalFrames << OFendl;
+     out << "  In-conc. Total Number      : " << m_inConcatTotalNumber << OFendl;
+     out << "  Patient ID                 : " << m_PatientID << OFendl;
+Index: dcmtk/dcmfg/tests/t_concatenation_loader.cc
+===================================================================
+--- dcmtk.orig/dcmfg/tests/t_concatenation_loader.cc
++++ dcmtk/dcmfg/tests/t_concatenation_loader.cc
+@@ -114,8 +114,8 @@ static void prepare_scan_dump()
+ {
+     SCAN_DUMP += "Concatenation UID*           : 1.3.6.1.4.1.5962.1.7.70.2.1.1166562673.14401\n";
+     SCAN_DUMP += "  SOP Class UID*             : 1.2.840.10008.5.1.4.1.1.2.1\n";
+-    SCAN_DUMP += "  Concatentation Source UID* : \n";
+-    SCAN_DUMP += "  Concatentation Source File : \n";
++    SCAN_DUMP += "  Concatenation Source UID* : \n";
++    SCAN_DUMP += "  Concatenation Source File : \n";
+     SCAN_DUMP += "  Number of Frames (computed): 60\n";
+     SCAN_DUMP += "  In-conc. Total Number      : 6\n";
+     SCAN_DUMP += "  Patient ID                 : 0070\n";
+@@ -152,8 +152,8 @@ static void prepare_scan_dump()
+     SCAN_DUMP += "--------------------------------------------------------------\n";
+     SCAN_DUMP += "Concatenation UID*           : 1.3.6.1.4.1.5962.1.7.70.2.2.1166562673.14401\n";
+     SCAN_DUMP += "  SOP Class UID*             : 1.2.840.10008.5.1.4.1.1.2.1\n";
+-    SCAN_DUMP += "  Concatentation Source UID* : \n";
+-    SCAN_DUMP += "  Concatentation Source File : \n";
++    SCAN_DUMP += "  Concatenation Source UID* : \n";
++    SCAN_DUMP += "  Concatenation Source File : \n";
+     SCAN_DUMP += "  Number of Frames (computed): 30\n";
+     SCAN_DUMP += "  In-conc. Total Number      : 3\n";
+     SCAN_DUMP += "  Patient ID                 : 0070\n";
+@@ -178,8 +178,8 @@ static void prepare_scan_dump()
+     SCAN_DUMP += "--------------------------------------------------------------\n";
+     SCAN_DUMP += "Concatenation UID*           : 1.3.6.1.4.1.5962.1.7.70.2.3.1166562673.14401\n";
+     SCAN_DUMP += "  SOP Class UID*             : 1.2.840.10008.5.1.4.1.1.2.1\n";
+-    SCAN_DUMP += "  Concatentation Source UID* : \n";
+-    SCAN_DUMP += "  Concatentation Source File : \n";
++    SCAN_DUMP += "  Concatenation Source UID* : \n";
++    SCAN_DUMP += "  Concatenation Source File : \n";
+     SCAN_DUMP += "  Number of Frames (computed): 30\n";
+     SCAN_DUMP += "  In-conc. Total Number      : 3\n";
+     SCAN_DUMP += "  Patient ID                 : 0070\n";
+Index: dcmtk/dcmjpeg/docs/dcmcjpeg.man
+===================================================================
+--- dcmtk.orig/dcmjpeg/docs/dcmcjpeg.man
++++ dcmtk/dcmjpeg/docs/dcmcjpeg.man
+@@ -148,7 +148,7 @@ lossless JPEG codec selection:
+   +tl   --true-lossless
+           true lossless codec (default)
+ 
+-  # This option selects an encoder, that guarantees truely lossless
++  # This option selects an encoder, that guarantees truly lossless
+   # image compression. See NOTES for further information.
+ 
+   +pl   --pseudo-lossless
+Index: dcmtk/dcmpstat/apps/dcmpsmk.cc
+===================================================================
+--- dcmtk.orig/dcmpstat/apps/dcmpsmk.cc
++++ dcmtk/dcmpstat/apps/dcmpsmk.cc
+@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
+     /* add additional image references to pstate */
+     if (cmd.getParamCount() > 2)
+     {
+-        OFLOG_INFO(dcmpsmkLogger, "adding additonal image reference(s)");
++        OFLOG_INFO(dcmpsmkLogger, "adding additional image reference(s)");
+         const int count = cmd.getParamCount();
+         for (int i = 2; i < count; i++)
+         {
+Index: dcmtk/dcmpstat/docs/dcmp2pgm.man
+===================================================================
+--- dcmtk.orig/dcmpstat/docs/dcmp2pgm.man
++++ dcmtk/dcmpstat/docs/dcmp2pgm.man
+@@ -19,7 +19,7 @@ a grayscale softcopy presentation state
+ with 8 bits/pixel.  The bitmap is stored either as "Portable Gray Map" (PGM)
+ or as a DICOM secondary capture image object.  If no presentation state is
+ read from file, a default presentation state is created.  The utility allows
+-to read a configuration file of the Softcopy Presentation State Viewer upon
++one to read a configuration file of the Softcopy Presentation State Viewer upon
+ startup.  In this case, the settings from the configuration file affecting
+ the rendering of the presentation state are used, e.g. a correction of the
+ gray scale range according to Barten's model (DICOM part 14) can be
+Index: dcmtk/dcmpstat/docs/dcmprscp.man
+===================================================================
+--- dcmtk.orig/dcmpstat/docs/dcmprscp.man
++++ dcmtk/dcmpstat/docs/dcmprscp.man
+@@ -22,7 +22,7 @@ The \b dcmprscp utility accepts print jo
+ not create real hardcopies but stores print jobs in the local DICOMscope
+ database as a set of Stored Print objects (one per page) and Hardcopy
+ Grayscale images (one per film box N-SET).  The DICOMscope application allows
+-to load a Stored Print object created by \b dcmprscp and to render a screen
++one to load a Stored Print object created by \b dcmprscp and to render a screen
+ preview of the hardcopy.  The \b dcmprscp utility reads the characteristics of
+ the printer to be emulated from the configuration file.
+ 
+Index: dcmtk/dcmpstat/docs/dcmpsmk.man
+===================================================================
+--- dcmtk.orig/dcmpstat/docs/dcmpsmk.man
++++ dcmtk/dcmpstat/docs/dcmpsmk.man
+@@ -17,7 +17,7 @@ dcmpsmk [options] dcmfile-in dcmfile-out
+ The \b dcmpsmk utility reads a DICOM image file and creates a grayscale
+ softcopy presentation state object according to Supplement 33.  The
+ presentation state object is written back to file.  A number of command line
+-options allow to specify how certain constructs that might be present in
++options allow one to specify how certain constructs that might be present in
+ the image file should be referenced or activated in the presentation state.
+ The newly created presentation state references the source image and
+ contains values that should allow for a "reasonable" display of the image
+Index: dcmtk/dcmwlm/docs/wlmscpfs.man
+===================================================================
+--- dcmtk.orig/dcmwlm/docs/wlmscpfs.man
++++ dcmtk/dcmwlm/docs/wlmscpfs.man
+@@ -263,7 +263,7 @@ within the given directory.  By default,
+ This should work as a default for most applications that would like to use
+ request files and want to ensure unique file names.  If it is desired to change
+ this naming scheme, the option \e --request-file-format can be used.  It
+-permits to specify the file naming pattern used by \e --request-file-path.
++permits one to specify the file naming pattern used by \e --request-file-path.
+ 
+ For flexibility, the following placeholders can be used in the pattern provided
+ for \e --request-file-format:

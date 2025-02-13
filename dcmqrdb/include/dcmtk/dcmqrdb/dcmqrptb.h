@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1993-2011, OFFIS e.V.
+ *  Copyright (C) 1993-2021, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -27,9 +27,6 @@
 #include "dcmtk/ofstd/ofstring.h"
 #include "dcmtk/dcmnet/assoc.h"
 #include "dcmtk/dcmqrdb/qrdefine.h"
-
-#define INCLUDE_CTIME
-#include "dcmtk/ofstd/ofstdinc.h"
 
 BEGIN_EXTERN_C
 #ifdef HAVE_SYS_TIME_H
@@ -78,6 +75,7 @@ public:
    *  given aetitle. Used to enforce an ad-hoc rule that allows only
    *  one parallel association to negotiate storage presentation contexts
    *  for each storage area (aetitle)
+   *  @param calledAETitle the given aetitle
    */
   OFBool haveProcessWithWriteAccess(const char *calledAETitle) const;
 

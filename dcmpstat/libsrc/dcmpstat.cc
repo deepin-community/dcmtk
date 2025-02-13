@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1998-2018, OFFIS e.V.
+ *  Copyright (C) 1998-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -42,15 +42,6 @@
 #include "dcmtk/dcmpstat/dvpsri.h"      /* for DVPSReferencedImage, needed by MSVC5 with STL */
 #include "dcmtk/dcmpstat/dvpstx.h"      /* for DVPSTextObject, needed by MSVC5 with STL */
 #include "dcmtk/dcmpstat/dvpsgr.h"      /* for DVPSGraphicObject, needed by MSVC5 with STL */
-
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#define INCLUDE_CMATH
-#define INCLUDE_CTIME
-#define INCLUDE_LIBC
-#define INCLUDE_UNISTD
-#include "dcmtk/ofstd/ofstdinc.h"
 
 OFLogger DCM_dcmpstatLogger = OFLog::getLogger("dcmtk.dcmpstat");
 OFLogger DCM_dcmpstatDumpLogger = OFLog::getLogger("dcmtk.dcmpstat.dump");
@@ -966,7 +957,9 @@ OFCondition DcmPresentationState::createFromImage(
   if (result==EC_Normal) result = seriesInstanceUID.putString(dcmGenerateUniqueIdentifier(uid, SITE_SERIES_UID_ROOT));
   if (result==EC_Normal) result = sOPInstanceUID.putString(dcmGenerateUniqueIdentifier(uid));
   if (result==EC_Normal) result = seriesNumber.putString(DEFAULT_seriesNumber);
-  if (result==EC_Normal) result = specificCharacterSet.putString(DEFAULT_specificCharacterSet);
+
+  /* If no other character set is specified by the image, we use ISO_IR 100 as the default */
+  if ((result==EC_Normal) && (specificCharacterSet.getLength() == 0)) result = specificCharacterSet.putString(DEFAULT_specificCharacterSet);
 
   if (result==EC_Normal)
   {
@@ -1773,6 +1766,9 @@ OFCondition DcmPresentationState::setCharset(DVPScharacterSet charset)
     case DVPSC_latin5:
       cname = "ISO_IR 148";
       break;
+    case DVPSC_latin9:
+      cname = "ISO_IR 203";
+      break;
     case DVPSC_cyrillic:
       cname = "ISO_IR 144";
       break;
@@ -1812,6 +1808,7 @@ DVPScharacterSet DcmPresentationState::getCharset()
   else if (aString == "ISO_IR 109") return DVPSC_latin3;
   else if (aString == "ISO_IR 110") return DVPSC_latin4;
   else if (aString == "ISO_IR 148") return DVPSC_latin5;
+  else if (aString == "ISO_IR 203") return DVPSC_latin9;
   else if (aString == "ISO_IR 144") return DVPSC_cyrillic;
   else if (aString == "ISO_IR 127") return DVPSC_arabic;
   else if (aString == "ISO_IR 126") return DVPSC_greek;

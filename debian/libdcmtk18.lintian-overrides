@@ -1,0 +1,5 @@
+# There is more than one library in one package bundles which makes perfectly
+# sense in this application but does not enable naming the library package apropriately
+libdcmtk18: package-name-doesnt-match-sonames
+libdcmtk18: embedded-library
+libdcmtk18: no-symbols-control-file

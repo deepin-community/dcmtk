@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1996-2020, OFFIS e.V.
+ *  Copyright (C) 1996-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -21,10 +21,6 @@
 
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
-
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/dcmdata/dctk.h"          /* for various dcmdata headers */
 #include "dcmtk/dcmdata/cmdlnarg.h"      /* for prepareCmdLineArgs */
@@ -206,8 +202,9 @@ int main(int argc, char *argv[])
 
     prepareCmdLineArgs(argc, argv, OFFIS_CONSOLE_APPLICATION);
     cmd.setOptionColumns(LONGCOL, SHORTCOL);
+    cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
 
-    cmd.addParam("dcmfile-in",  "DICOM input filename to be converted");
+    cmd.addParam("dcmfile-in", "DICOM input filename to be converted\n(\"-\" for stdin)");
     cmd.addParam("bitmap-out", OFFIS_OUTFILE_DESCRIPTION, OFCmdParam::PM_Optional);
 
     cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);

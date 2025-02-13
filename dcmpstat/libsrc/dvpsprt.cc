@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2000-2018, OFFIS e.V.
+ *  Copyright (C) 2000-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -415,7 +415,7 @@ OFCondition DVPSPrintSCP::handleNGet(T_DIMSE_Message& rq, T_ASC_PresentationCont
   OFCondition cond = EC_Normal;
   DcmDataset *rspDataset = NULL;
 
-  if (rq.msg.NGetRQ.DataSetType == DIMSE_DATASET_PRESENT)
+  if (rq.msg.NGetRQ.DataSetType != DIMSE_DATASET_NULL)
   {
      DcmDataset *dataset = NULL;
      // should not happen
@@ -473,7 +473,7 @@ OFCondition DVPSPrintSCP::handleNSet(T_DIMSE_Message& rq, T_ASC_PresentationCont
   DcmDataset *rqDataset = NULL;
   DcmDataset *rspDataset = NULL;
 
-  if (rq.msg.NSetRQ.DataSetType == DIMSE_DATASET_PRESENT)
+  if (rq.msg.NSetRQ.DataSetType != DIMSE_DATASET_NULL)
   {
      cond = DIMSE_receiveDataSetInMemory(assoc, blockMode, timeout, &presID, &rqDataset, NULL, NULL);
      if (cond.bad()) return cond;
@@ -533,7 +533,7 @@ OFCondition DVPSPrintSCP::handleNAction(T_DIMSE_Message& rq, T_ASC_PresentationC
   OFCondition cond = EC_Normal;
   DcmDataset *rqDataset = NULL;
 
-  if (rq.msg.NActionRQ.DataSetType == DIMSE_DATASET_PRESENT)
+  if (rq.msg.NActionRQ.DataSetType != DIMSE_DATASET_NULL)
   {
      cond = DIMSE_receiveDataSetInMemory(assoc, blockMode, timeout, &presID, &rqDataset, NULL, NULL);
      if (cond.bad()) return cond;
@@ -601,7 +601,7 @@ OFCondition DVPSPrintSCP::handleNCreate(T_DIMSE_Message& rq, T_ASC_PresentationC
   DcmDataset *rqDataset = NULL;
   DcmDataset *rspDataset = NULL;
 
-  if (rq.msg.NCreateRQ.DataSetType == DIMSE_DATASET_PRESENT)
+  if (rq.msg.NCreateRQ.DataSetType != DIMSE_DATASET_NULL)
   {
      cond = DIMSE_receiveDataSetInMemory(assoc, blockMode, timeout, &presID, &rqDataset, NULL, NULL);
      if (cond.bad()) return cond;
@@ -658,7 +658,7 @@ OFCondition DVPSPrintSCP::handleNDelete(T_DIMSE_Message& rq, T_ASC_PresentationC
   rsp.msg.NDeleteRSP.opts = 0;
 
   OFCondition cond = EC_Normal;
-  if (rq.msg.NDeleteRQ.DataSetType == DIMSE_DATASET_PRESENT)
+  if (rq.msg.NDeleteRQ.DataSetType != DIMSE_DATASET_NULL)
   {
      // should not happen
      DcmDataset *dataset = NULL;
@@ -767,7 +767,7 @@ void DVPSPrintSCP::printerNGet(T_DIMSE_Message& rq, T_DIMSE_Message& rsp, DcmDat
     }
   } else {
     DCMPSTAT_WARN("cannot retrieve printer information, instance UID is not well-known printer SOP instance UID.");
-    rsp.msg.NGetRSP.DimseStatus = STATUS_N_NoSuchObjectInstance;
+    rsp.msg.NGetRSP.DimseStatus = STATUS_N_NoSuchSOPInstance;
   }
 }
 
@@ -796,7 +796,7 @@ void DVPSPrintSCP::filmSessionNSet(T_DIMSE_Message& rq, DcmDataset *rqDataset, T
   } else {
     // film session does not exist or wrong instance UID
     DCMPSTAT_WARN("cannot update film session, object not found.");
-    rsp.msg.NSetRSP.DimseStatus = STATUS_N_NoSuchObjectInstance;
+    rsp.msg.NSetRSP.DimseStatus = STATUS_N_NoSuchSOPInstance;
   }
 }
 
@@ -818,7 +818,7 @@ void DVPSPrintSCP::filmSessionNAction(T_DIMSE_Message& rq, T_DIMSE_Message& rsp)
   } else {
     // film session does not exist or wrong instance UID
     DCMPSTAT_WARN("cannot print film session, object not found.");
-    rsp.msg.NActionRSP.DimseStatus = STATUS_N_NoSuchObjectInstance;
+    rsp.msg.NActionRSP.DimseStatus = STATUS_N_NoSuchSOPInstance;
   }
 }
 
@@ -909,7 +909,7 @@ void DVPSPrintSCP::filmBoxNCreate(DcmDataset *rqDataset, T_DIMSE_Message& rsp, D
   } else {
     // no film session, refuse n-create
     DCMPSTAT_WARN("cannot create film box without film session.");
-    rsp.msg.NCreateRSP.DimseStatus = STATUS_N_InvalidObjectInstance;
+    rsp.msg.NCreateRSP.DimseStatus = STATUS_N_InvalidSOPInstance;
     rsp.msg.NCreateRSP.opts = 0;  // don't include affected SOP instance UID
   }
 }
@@ -956,7 +956,7 @@ void DVPSPrintSCP::filmSessionNDelete(T_DIMSE_Message& rq, T_DIMSE_Message& rsp)
   } else {
     // film session does not exist or wrong instance UID
     DCMPSTAT_WARN("cannot delete film session with instance UID '" << rq.msg.NDeleteRQ.RequestedSOPInstanceUID << "': object does not exist.");
-    rsp.msg.NDeleteRSP.DimseStatus = STATUS_N_NoSuchObjectInstance;
+    rsp.msg.NDeleteRSP.DimseStatus = STATUS_N_NoSuchSOPInstance;
   }
 }
 

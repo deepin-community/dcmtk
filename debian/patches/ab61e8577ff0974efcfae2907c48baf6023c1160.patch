@@ -1,0 +1,25 @@
+From ab61e8577ff0974efcfae2907c48baf6023c1160 Mon Sep 17 00:00:00 2001
+From: Joerg Riesmeier <dicom@jriesmeier.com>
+Date: Thu, 30 Sep 2021 13:08:23 +0200
+Subject: [PATCH] Replaced German umlaut by its transliteration.
+
+Replaced German umlaut in code meaning by its transliteration.
+
+Thanks to GitHub user "malaterre" for the report.
+---
+ dcmsr/include/dcmtk/dcmsr/codes/dcm.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+Index: dcmtk/dcmsr/include/dcmtk/dcmsr/codes/dcm.h
+===================================================================
+--- dcmtk.orig/dcmsr/include/dcmtk/dcmsr/codes/dcm.h
++++ dcmtk/dcmsr/include/dcmtk/dcmsr/codes/dcm.h
+@@ -1630,7 +1630,7 @@
+ #define CODE_DCM_Generic3DPlanning                                         DSRBasicCodedEntry("112341", "DCM", "Generic 3D Planning")
+ #define CODE_DCM_GenericPlanningForHipReplacement                          DSRBasicCodedEntry("112342", "DCM", "Generic Planning for Hip Replacement")
+ #define CODE_DCM_GenericPlanningForKneeReplacement                         DSRBasicCodedEntry("112343", "DCM", "Generic Planning for Knee Replacement")
+-#define CODE_DCM_MuellerMethodPlanningForHipReplacement                    DSRBasicCodedEntry("112344", "DCM", "Müller Method Planning for Hip Replacement")
++#define CODE_DCM_MuellerMethodPlanningForHipReplacement                    DSRBasicCodedEntry("112344", "DCM", "Mueller Method Planning for Hip Replacement")
+ #define CODE_DCM_ImplantationPlan                                          DSRBasicCodedEntry("112345", "DCM", "Implantation Plan")
+ #define CODE_DCM_SelectedImplantComponent                                  DSRBasicCodedEntry("112346", "DCM", "Selected Implant Component")
+ #define CODE_DCM_ComponentID                                               DSRBasicCodedEntry("112347", "DCM", "Component ID")

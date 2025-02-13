@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1998-2018, OFFIS e.V.
+ *  Copyright (C) 1998-2022, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -23,11 +23,6 @@
 
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
-
-#define INCLUDE_CSTDLIB
-#define INCLUDE_CSTDIO
-#define INCLUDE_CSTRING
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/ofstd/ofconapp.h"
 #include "dcmtk/dcmdata/dctk.h"
@@ -94,8 +89,8 @@ int main(int argc, char *argv[])
     cmd.setOptionColumns(LONGCOL, SHORTCOL);
     cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
 
-    cmd.addParam("dcmfile-in",  "DICOM image file(s) to be read", OFCmdParam::PM_MultiMandatory);
-    cmd.addParam("dcmfile-out", "DICOM presentation state file to be created");
+    cmd.addParam("dcmfile-in",  "DICOM image file(s) to be read\n(\"-\" for stdin)", OFCmdParam::PM_MultiMandatory);
+    cmd.addParam("dcmfile-out", "DICOM presentation state file to be created\n(\"-\" for stdout)");
 
     cmd.addGroup("general options:", LONGCOL, SHORTCOL + 2);
       cmd.addOption("--help",                 "-h",     "print this help text and exit", OFCommandLine::AF_Exclusive);
@@ -311,7 +306,7 @@ int main(int argc, char *argv[])
     /* add additional image references to pstate */
     if (cmd.getParamCount() > 2)
     {
-        OFLOG_INFO(dcmpsmkLogger, "adding additonal image reference(s)");
+        OFLOG_INFO(dcmpsmkLogger, "adding additional image reference(s)");
         const int count = cmd.getParamCount();
         for (int i = 2; i < count; i++)
         {

@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 1999-2020, OFFIS e.V.
+ *  Copyright (C) 1999-2023, OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -25,9 +25,6 @@
 
 
 #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
-
-#define INCLUDE_CCTYPE
-#include "dcmtk/ofstd/ofstdinc.h"
 
 #include "dcmtk/ofstd/ofstream.h"
 #include "dcmtk/dcmpstat/dviface.h"
@@ -73,7 +70,6 @@ static int addOverlay(const char *filename,
                 input >> ysize;
                 if ((xpos + xsize <= width) && (ypos + ysize <= height))
                 {
-                    unsigned int value;
                     Uint16 *p = pixel + (ypos * width) + xpos;
                     for (unsigned long ys = 0; ys < ysize; ys++)
                     {
@@ -86,7 +82,7 @@ static int addOverlay(const char *filename,
                               return 0;
                             }
                             if (c != '0')
-                                *p = gray;
+                                *p = OFstatic_cast(Uint16, gray);
                             p++;
                         }
                         p += (width - xsize);
@@ -148,15 +144,15 @@ int main(int argc, char *argv[])
     OFBool                    opt_annotationIllumination = OFTrue;
     const char *              opt_annotationString = NULL;
 
-    OFCmdUnsignedInt          opt_illumination = (OFCmdUnsignedInt)-1;
-    OFCmdUnsignedInt          opt_reflection = (OFCmdUnsignedInt)-1;
+    OFCmdUnsignedInt          opt_illumination = OFstatic_cast(OFCmdUnsignedInt, -1);
+    OFCmdUnsignedInt          opt_reflection = OFstatic_cast(OFCmdUnsignedInt, -1);
 
     OFConsoleApplication app(OFFIS_CONSOLE_APPLICATION , "Read DICOM images and presentation states and render print job", rcsid);
     OFCommandLine cmd;
     cmd.setOptionColumns(LONGCOL, SHORTCOL + 2);
     cmd.setParamColumn(LONGCOL + SHORTCOL + 4);
 
-    cmd.addParam("dcmfile-in", "DICOM image file(s) to be printed", OFCmdParam::PM_MultiMandatory);
+    cmd.addParam("dcmfile-in", "DICOM image file(s) to be printed (\"-\" for stdin)", OFCmdParam::PM_MultiMandatory);
 
     cmd.addGroup("general options:");
      cmd.addOption("--help",              "-h",     "print this help text and exit", OFCommandLine::AF_Exclusive);
@@ -478,9 +474,9 @@ int main(int argc, char *argv[])
       OFLOG_WARN(dcmpsprtLogger, "cannot set trim, ignoring.");
     if (EC_Normal != dvi.getPrintHandler().setRequestedDecimateCropBehaviour(opt_decimate))
       OFLOG_WARN(dcmpsprtLogger, "cannot set requested decimate/crop behaviour, ignoring.");
-    if ((opt_illumination != (OFCmdUnsignedInt)-1)&&(EC_Normal != dvi.getPrintHandler().setPrintIllumination((Uint16)opt_illumination)))
+    if ((opt_illumination != OFstatic_cast(OFCmdUnsignedInt, -1))&&(EC_Normal != dvi.getPrintHandler().setPrintIllumination(OFstatic_cast(Uint16, opt_illumination))))
       OFLOG_WARN(dcmpsprtLogger, "cannot set illumination to '" << opt_illumination << "', ignoring.");
-    if ((opt_reflection != (OFCmdUnsignedInt)-1)&&(EC_Normal != dvi.getPrintHandler().setPrintReflectedAmbientLight((Uint16)opt_reflection)))
+    if ((opt_reflection != OFstatic_cast(OFCmdUnsignedInt, -1))&&(EC_Normal != dvi.getPrintHandler().setPrintReflectedAmbientLight(OFstatic_cast(Uint16, opt_reflection))))
       OFLOG_WARN(dcmpsprtLogger, "cannot set reflected ambient light to '" << opt_reflection << "', ignoring.");
 
     if ((opt_copies > 0)&&(EC_Normal != dvi.setPrinterNumberOfCopies(opt_copies)))

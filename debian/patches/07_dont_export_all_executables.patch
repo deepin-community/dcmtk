@@ -6,9 +6,12 @@ Description: Don't add executables to cmake exports
  to configure the according package. 
 Bug-Debian: https://bugs.debian.org/803304
 Author: Gert Wollny <gw.fossdev@gmail.com>
---- a/CMake/dcmtkMacros.cmake
-+++ b/CMake/dcmtkMacros.cmake
-@@ -60,11 +60,11 @@
+Forwarded: not-needed
+Index: dcmtk/CMake/dcmtkMacros.cmake
+===================================================================
+--- dcmtk.orig/CMake/dcmtkMacros.cmake
++++ dcmtk/CMake/dcmtkMacros.cmake
+@@ -55,11 +55,11 @@ macro(DCMTK_ADD_EXECUTABLE PROGRAM)
          endif()
  
          # Collect executable as part of global DCMTK_EXECUTABLE_TARGETS property

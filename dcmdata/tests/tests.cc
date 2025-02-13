@@ -1,6 +1,6 @@
 /*
  *
- *  Copyright (C) 2011-2020 OFFIS e.V.
+ *  Copyright (C) 2011-2023 OFFIS e.V.
  *  All rights reserved.  See COPYRIGHT file for details.
  *
  *  This software and supporting documentation were developed by
@@ -44,6 +44,8 @@ OFTEST_REGISTER(dcmdata_other64bitVeryLong);
 OFTEST_REGISTER(dcmdata_signed64bitVeryLong);
 OFTEST_REGISTER(dcmdata_unsigned64bitVeryLong);
 OFTEST_REGISTER(dcmdata_VRCompare);
+OFTEST_REGISTER(dcmdata_compareTag);
+OFTEST_REGISTER(dcmdata_compareTagKey);
 OFTEST_REGISTER(dcmdata_elementLength_EVR_AE);
 OFTEST_REGISTER(dcmdata_elementLength_EVR_AS);
 OFTEST_REGISTER(dcmdata_elementLength_EVR_AT);
@@ -94,6 +96,7 @@ OFTEST_REGISTER(dcmdata_elementParent);
 OFTEST_REGISTER(dcmdata_sequenceInsert);
 OFTEST_REGISTER(dcmdata_pixelSequenceInsert);
 OFTEST_REGISTER(dcmdata_findAndGetSequenceItem);
+OFTEST_REGISTER(dcmdata_findAndGetUint16Array);
 OFTEST_REGISTER(dcmdata_parser_missingDelimitationItems);
 OFTEST_REGISTER(dcmdata_parser_missingSequenceDelimitationItem_1);
 OFTEST_REGISTER(dcmdata_parser_missingSequenceDelimitationItem_2);
