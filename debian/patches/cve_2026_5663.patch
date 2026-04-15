@@ -1,0 +1,133 @@
+Description: Fix OS command injection in storescp (CVE-2026-5663)
+ Sanitize all strings passed to the exec options to prevent OS command
+ injection vulnerabilities when using --exec-on-reception or similar options.
+ .
+ This fixes CVE-2026-5663, where specially crafted text fields from incoming
+ DICOM associations (such as calling AE title, called AE title, or the
+ calling SCU's network presentation address) could be interpreted as shell
+ escape characters when used with --exec-on-reception or --exec-on-eostudy.
+ .
+ This patch:
+ - Adds OFStandard::sanitizeFilename() function to ofstd library
+ - Wraps callingPresentationAddress in double quotes
+ - Sanitizes presentation address before use in command substitution
+Author: Marco Eichelberg <eichelberg@offis.de>
+Origin: upstream, https://github.com/DCMTK/dcmtk/commit/edbb085e45788dccaf0e64d71534cfca925784b8
+Bug: https://security-tracker.debian.org/tracker/CVE-2026-5663
+Bug-DCMTK: https://github.com/DCMTK/dcmtk/issues/1194
+Forwarded: not-needed
+
+Index: github-dcmtk-CVE-2026-5663/dcmnet/apps/storescp.cc
+===================================================================
+--- github-dcmtk-CVE-2026-5663.orig/dcmnet/apps/storescp.cc
++++ github-dcmtk-CVE-2026-5663/dcmnet/apps/storescp.cc
+@@ -1478,7 +1478,9 @@ static OFCondition acceptAssociation(T_A
+     calledAETitle.clear();
+   }
+   // store calling presentation address (i.e. remote hostname)
+-  callingPresentationAddress = OFSTRING_GUARD(assoc->params->DULparams.callingPresentationAddress);
++  callingPresentationAddress = "\"";
++  callingPresentationAddress += OFSTRING_GUARD(assoc->params->DULparams.callingPresentationAddress);
++  callingPresentationAddress += "\"";
+ 
+   /* now do the real work, i.e. receive DIMSE commands over the network connection */
+   /* which was established and handle these commands correspondingly. In case of */
+@@ -2216,7 +2218,12 @@ static void executeOnReception()
+   cmd = replaceChars( cmd, OFString(CALLED_AETITLE_PLACEHOLDER), calledAETitle );
+ 
+   // perform substitution for placeholder #r
+-  cmd = replaceChars( cmd, OFString(CALLING_PRESENTATION_ADDRESS_PLACEHOLDER), callingPresentationAddress );
++  // Note that this string is already enclosed in double quotes at this point
++  {
++    OFString s = callingPresentationAddress;
++    OFStandard::sanitizeFilename(s);
++    cmd = replaceChars( cmd, OFString(CALLING_PRESENTATION_ADDRESS_PLACEHOLDER), s );
++  }
+ 
+   // Execute command in a new process
+   executeCommand( cmd );
+@@ -2329,7 +2336,12 @@ static void executeOnEndOfStudy()
+   cmd = replaceChars( cmd, OFString(CALLED_AETITLE_PLACEHOLDER), calledAETitle );
+ 
+   // perform substitution for placeholder #r
+-  cmd = replaceChars( cmd, OFString(CALLING_PRESENTATION_ADDRESS_PLACEHOLDER), callingPresentationAddress );
++  // Note that this string is already enclosed in double quotes at this point
++  {
++    OFString s = callingPresentationAddress;
++    OFStandard::sanitizeFilename(s);
++    cmd = replaceChars( cmd, OFString(CALLING_PRESENTATION_ADDRESS_PLACEHOLDER), s );
++  }
+ 
+   // Execute command in a new process
+   executeCommand( cmd );
+Index: github-dcmtk-CVE-2026-5663/ofstd/include/dcmtk/ofstd/ofstd.h
+===================================================================
+--- github-dcmtk-CVE-2026-5663.orig/ofstd/include/dcmtk/ofstd/ofstd.h
++++ github-dcmtk-CVE-2026-5663/ofstd/include/dcmtk/ofstd/ofstd.h
+@@ -567,6 +567,20 @@ class DCMTK_OFSTD_EXPORT OFStandard
+      */
+     static OFBool deleteFile(const OFFilename &filename);
+ 
++
++    /** Sanitize a filename by replacing all potentially dangerous characters
++     *  with underscores. This is useful for preventing command injection
++     *  when using filenames in shell commands.
++     *  @param fname the filename to be sanitized, modified in-place
++     */
++    static void sanitizeFilename(OFString& fname);
++
++    /** Sanitize a filename by replacing all potentially dangerous characters
++     *  with underscores. This is useful for preventing command injection
++     *  when using filenames in shell commands.
++     *  @param fname pointer to the filename string to be sanitized, must not be NULL
++     */
++    static void sanitizeFilename(char *fname);
+     /** change name of a given file
+      *  @param oldFilename current name of the file (including directory) to be renamed.
+      *    This filename may contain wide characters if support enabled. Since there are various
+Index: github-dcmtk-CVE-2026-5663/ofstd/libsrc/ofstd.cc
+===================================================================
+--- github-dcmtk-CVE-2026-5663.orig/ofstd/libsrc/ofstd.cc
++++ github-dcmtk-CVE-2026-5663/ofstd/libsrc/ofstd.cc
+@@ -3150,3 +3150,41 @@ OFerror_code OFStandard::getLastNetworkE
+ // for that, so, now we cast a pointer to OFnullptr into an OFin_place_tag
+ // instead to silence the warnings.
+ DCMTK_OFSTD_EXPORT OFin_place_tag OFin_place() { return *reinterpret_cast<const OFin_place_tag*>(&OFnullptr); }
++
++
++// Sanitize filename character table
++static const char sanitized_filename_charset[] =
++{
++  ' ', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '_', '-', '.', '_',
++  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '_', '_', '_', '_', '_',
++  '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
++  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '_', '_', '_', '_', '_',
++  '_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
++  'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '_', '_', '_', '_', '_'
++};
++
++
++void OFStandard::sanitizeFilename(OFString& fname)
++{
++    const size_t len = fname.length();
++    char c;
++    for (size_t i = 0; i < len; ++i)
++    {
++        c = fname[i];
++        if (c != 0 && (c < 32 || c >= 127)) c = '_'; else c = sanitized_filename_charset[c-32];
++        fname[i] = c;
++    }
++}
++
++void OFStandard::sanitizeFilename(char *fname)
++{
++    if (fname)
++    {
++        char *c = fname;
++        while (*c)
++        {
++            if (*c < 32 || *c >= 127) *c = '_'; else *c = sanitized_filename_charset[*c-32];
++            ++c;
++        }
++    }
++}
